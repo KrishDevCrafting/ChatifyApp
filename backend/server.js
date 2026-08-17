@@ -1,6 +1,8 @@
+import "dotenv/config";
 import { Server } from "socket.io";
 import express from "express";
 import { createServer } from "node:http";
+import pool from "./Config/db.js";
 
 const app = express();
 const server = createServer(app);
