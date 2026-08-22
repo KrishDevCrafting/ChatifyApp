@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import express from "express";
 import { createServer } from "node:http";
 import pool from "./Config/db.js";
+import router from "./routes/authRoutes.js";
 
 const app = express();
 const server = createServer(app);
@@ -40,6 +41,8 @@ io.on("connection", (socket) => {
     console.log("user disconnected..!", socket.id);
   });
 });
+
+app.use("/api/auth",router)
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello world</h1>");
