@@ -7,18 +7,13 @@ const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Step A: Validation - check karo koi field empty toh nahi hai
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
-    // Step B: Check karo kya email already registered hai?
     const existingEmail = await FindbyEmail(email);
     if (existingEmail) {
       return res.status(400).json({ message: "Email is already in use" });
     }
-
-    // Step C: Check karo kya username already taken hai?
     const existingUser = await findByUsername(username);
     if (existingUser) {
       return res.status(400).json({ message: "Username is already taken" });
