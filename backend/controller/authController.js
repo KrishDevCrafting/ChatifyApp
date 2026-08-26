@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
 
 // 2. Login users
 
-const loginUser = async (eq, res) => {
+const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 

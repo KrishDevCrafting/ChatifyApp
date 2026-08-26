@@ -41,8 +41,8 @@ io.on("connection", (socket) => {
     console.log("user disconnected..!", socket.id);
   });
 });
-
-app.use("/api/auth",router)
+app.use(express.json());
+app.use("/api/auth", router);
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello world</h1>");
