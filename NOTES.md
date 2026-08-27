@@ -9,11 +9,14 @@
 1. [Architecture Overview (MVC Pattern)](#1-architecture-overview-mvc-pattern)
 2. [Module 1: User Registration (`registerUser`)](#2-module-1-user-registration-registeruser)
 3. [Module 2: User Login & JWT (`loginUser`)](#3-module-2-user-login--jwt-loginuser)
-4. [Deep Dive: Bcrypt vs General Hashing](#4-deep-dive-bcrypt-vs-general-hashing)
-5. [Deep Dive: How JSON Web Tokens (JWT) Work](#5-deep-dive-how-json-web-tokens-jwt-work)
-6. [Security Best Practices Learned](#6-security-best-practices-learned)
-7. [Interview Prep: Ready-to-Speak Scripts](#7-interview-prep-ready-to-speak-scripts)
-8. [Top Technical Interview Questions & Answers (Q&A)](#8-top-technical-interview-questions--answers-qa)
+4. [Module 3: JWT Middleware (`verifyToken`)](#4-module-3-jwt-middleware-verifytoken)
+5. [Module 4: Chat Database Schema (`rooms` & `messages`)](#5-module-4-chat-database-schema-rooms--messages)
+6. [Deep Dive: Bcrypt vs General Hashing](#6-deep-dive-bcrypt-vs-general-hashing)
+7. [Deep Dive: How JSON Web Tokens (JWT) Work](#7-deep-dive-how-json-web-tokens-jwt-work)
+8. [Deep Dive: Foreign Keys, Relationships & CASCADE](#8-deep-dive-foreign-keys-relationships--cascade)
+9. [Security Best Practices Learned](#9-security-best-practices-learned)
+10. [Interview Prep: Ready-to-Speak Scripts](#10-interview-prep-ready-to-speak-scripts)
+11. [Top Technical Interview Questions & Answers (Q&A)](#11-top-technical-interview-questions--answers-qa)
 
 ---
 
@@ -159,7 +162,120 @@ const loginUser = async (req, res) => {
 
 ---
 
-## 4. Deep Dive: Bcrypt vs General Hashing
+## 4. Module 3: JWT Middleware (`verifyToken`)
+
+### 🧠 Logic Mind Map
+```
+🛡️ verifyToken (Middleware — The Gatekeeper)
+  ├── 📨 1. Read Authorization Header
+  │     └── Missing or no 'Bearer'? ───► ❌ 401 'Access denied. No token'
+  ├── ✂️ 2. Extract Token
+  │     └── authHeader.split(' ')[1]
+  ├── 🔍 3. Verify Token
+  │     └── jwt.verify(token, JWT_SECRET)
+  │           └── Invalid / Expired? ───► ❌ 403 'Invalid or expired token'
+  ├── 👤 4. Attach User to Request
+  │     └── req.user = decoded (id, username)
+  └── ⏩ 5. Call next()
+        └── Proceeds to the actual Controller / Route Handler
+```
+
+### 💡 Core Code Snippet (`middleware/verifyToken.js`)
+```javascript
+import jwt from "jsonwebtoken";
+
+const verifyToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
+      return res.status(401).json({ message: "Access denied. No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;  // Now any controller can access req.user.id, req.user.username
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid or expired token" });
+  }
+};
+
+export default verifyToken;
+```
+
+### 🔗 How to Use in Routes
+```javascript
+// Any route that needs authentication:
+router.get("/me", verifyToken, (req, res) => {
+  res.status(200).json({ user: req.user });
+});
+```
+
+---
+## 5. Module 4: Chat Database Schema (`rooms` & `messages`)
+
+### 🧠 Entity Relationship Mind Map
+```
+🗄️ Chat Database Schema
+  │
+  ├── 👤 users (Phase 1 ✅)
+  │     ├── id (PK, AUTO_INCREMENT)
+  │     ├── username (UNIQUE)
+  │     ├── email (UNIQUE)
+  │     └── password (hashed, VARCHAR 255)
+  │
+  ├── 🏠 rooms (Phase 2 — NEW)
+  │     ├── id (PK, AUTO_INCREMENT)
+  │     ├── name (UNIQUE — no duplicate rooms)
+  │     ├── created_by (FK → users.id)
+  │     └── created_at (auto TIMESTAMP)
+  │
+  └── 💬 messages (Phase 2 — NEW)
+        ├── id (PK, AUTO_INCREMENT)
+        ├── room_id (FK → rooms.id)
+        ├── user_id (FK → users.id)
+        ├── content (TEXT — message body)
+        └── created_at (auto TIMESTAMP)
+```
+
+### 💡 SQL Queries
+```sql
+-- Table 1: Chat Rooms
+CREATE TABLE rooms (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Table 2: Chat Messages
+CREATE TABLE messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL,
+  user_id INT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### 🔑 Key SQL Concepts Used
+| Concept | Meaning |
+| :--- | :--- |
+| **`PRIMARY KEY (PK)`** | Unique identifier for each row. Auto-increments so we never set it manually. |
+| **`FOREIGN KEY (FK)`** | Links a column to another table's Primary Key, creating a relationship. |
+| **`ON DELETE CASCADE`** | If the referenced row (e.g., a user) is deleted, all related rows (messages, rooms) are automatically deleted too. |
+| **`UNIQUE`** | Prevents duplicate values in a column (no two rooms with the same name). |
+| **`TEXT`** | Stores large strings (messages can be long), unlike `VARCHAR(255)` which has a limit. |
+| **`TIMESTAMP DEFAULT CURRENT_TIMESTAMP`** | Automatically records the exact date & time when a row is inserted. |
+
+---
+
+## 6. Deep Dive: Bcrypt vs General Hashing
 
 ### ❓ What is the difference?
 - **Hashing (e.g., MD5, SHA-256):** A general one-way function designed for **speed and data integrity**. Because it is fast, attackers can calculate billions of hashes per second using GPUs and **Rainbow Tables**.
@@ -171,7 +287,7 @@ const loginUser = async (req, res) => {
 
 ---
 
-## 5. Deep Dive: How JSON Web Tokens (JWT) Work
+## 7. Deep Dive: How JSON Web Tokens (JWT) Work
 
 A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 1. **Header:** Contains the algorithm (`HS256`) and token type (`JWT`).
@@ -180,7 +296,21 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 
 ---
 
-## 6. Security Best Practices Learned
+## 8. Deep Dive: Foreign Keys, Relationships & CASCADE
+
+### Why Foreign Keys Matter:
+Without Foreign Keys, your database has **no rules**. Someone could insert a message with `user_id = 999` even if no user with ID 999 exists. Foreign Keys enforce **Referential Integrity** — every relationship must point to a real, existing row.
+
+### CASCADE Types:
+| Type | What Happens When Parent Row is Deleted |
+| :--- | :--- |
+| **`ON DELETE CASCADE`** | Child rows are **automatically deleted** (Used in our app: user deleted → their messages deleted). |
+| **`ON DELETE SET NULL`** | Child row's FK column becomes `NULL` (e.g., "deleted user" but keep the message). |
+| **`ON DELETE RESTRICT`** | **Blocks** the parent deletion if children exist (strictest option). |
+
+---
+
+## 9. Security Best Practices Learned
 
 | Security Rule | Why it is mandatory |
 | :--- | :--- |
@@ -193,7 +323,7 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 
 ---
 
-## 7. Interview Prep: Ready-to-Speak Scripts
+## 10. Interview Prep: Ready-to-Speak Scripts
 
 ### 🎙️ How to explain `registerUser` & `loginUser` to an Interviewer:
 > *"In my authentication system, I implemented registration and login controllers following the **MVC pattern** and the **fail-fast principle**.*
@@ -205,7 +335,7 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 
 ---
 
-## 8. Top Technical Interview Questions & Answers (Q&A)
+## 11. Top Technical Interview Questions & Answers (Q&A)
 
 ### ❓ Q1: Why use `bcrypt` instead of `crypto.createHash('sha256')` for passwords?
 > **Answer:** SHA-256 is designed for fast hashing (data integrity / checksums). Because modern GPUs can calculate billions of SHA-256 hashes per second, attackers can easily brute-force passwords or use precomputed **Rainbow Tables**.  
@@ -243,4 +373,24 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 > - **Authentication (AuthN):** Verifying **who you are** (e.g., Registering, Logging in with email & password, verifying identity).
 > - **Authorization (AuthZ):** Verifying **what you are allowed to access** (e.g., verifying JWT token permissions, checking if a user is an Admin or allowed into a private chat room).
 
+---
 
+### ❓ Q7: What is Express Middleware and why is `verifyToken` a middleware?
+> **Answer:** Express middleware is a function that sits between the incoming HTTP request and the route handler. It has access to `req`, `res`, and a `next()` function. Our `verifyToken` middleware intercepts every request to protected routes, validates the JWT token, attaches the decoded user payload to `req.user`, and only calls `next()` if the token is valid. If not, it short-circuits the request with a `401` or `403` response, ensuring unauthorized users never reach the controller logic.
+
+---
+
+### ❓ Q8: Why do we use `401 Unauthorized` vs `403 Forbidden` — what's the difference?
+> **Answer:**
+> - **401 Unauthorized:** The client did NOT provide any credentials (no token at all). *"Who are you? I don't know you."*
+> - **403 Forbidden:** The client DID provide a token, but it's invalid, expired, or lacks permission. *"I know who you are, but you're not allowed."*
+
+---
+
+### ❓ Q9: What is a Foreign Key and why is it important in a chat application?
+> **Answer:** A Foreign Key is a column that creates a link between two tables by referencing the Primary Key of another table. In our chat app, `messages.user_id` references `users.id`, ensuring every message belongs to a real, existing user. Without Foreign Keys, orphan records (messages from non-existent users) could corrupt data integrity.
+
+---
+
+### ❓ Q10: What is `ON DELETE CASCADE` and when would you NOT use it?
+> **Answer:** `ON DELETE CASCADE` automatically deletes all child rows when the parent row is deleted. For example, deleting a chat room also deletes all its messages. You would **NOT** use it when you want to preserve history — for example, in an e-commerce app, you wouldn't want to delete all orders when a user deletes their account. In that case, you'd use `ON DELETE SET NULL` or `ON DELETE RESTRICT`.
