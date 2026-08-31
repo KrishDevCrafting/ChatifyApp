@@ -10,7 +10,7 @@ const createMessage = async (roomId, userId, content) => {
 
 //  GEt all messages of a specific room with username
 
-const getMessgesRoom = async (roomId) => {
+const getMessagesRoom = async (roomId) => {
   const [rows] = await pool.execute(
     "SELECT messages.*, users.username FROM messages JOIN users ON messages.user_id =  users.id WHERE messages.room_id = ? ORDER BY messages.created_at ASC",
     [roomId],
@@ -18,4 +18,4 @@ const getMessgesRoom = async (roomId) => {
   return rows;
 };
 
-export { createMessage, getMessgesRoom };
+export { createMessage, getMessagesRoom };
