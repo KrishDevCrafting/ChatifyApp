@@ -10,10 +10,12 @@ import {
 } from "../controller/messageController.js";
 const router = express.Router();
 
-router.post("/rooms", verifyToken, handleCreateRoom);
+// 🏠 Room Routes
+router.post("/rooms", verifyToken, handleCreateRoom);      // Create a room
+router.get("/rooms", verifyToken, handleGetRooms);          // Get all rooms
 
-router.get("/rooms", handleGetRooms);
-
-router.post("/messages/:roomId", verifyToken, handleGetMessages);
+// 💬 Message Routes
+router.post("/messages", verifyToken, handleSendMessage);           // Send a message
+router.get("/messages/:roomId", verifyToken, handleGetMessages);    // Get messages by room
 
 export default router;
