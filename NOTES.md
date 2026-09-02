@@ -11,12 +11,16 @@
 3. [Module 2: User Login & JWT (`loginUser`)](#3-module-2-user-login--jwt-loginuser)
 4. [Module 3: JWT Middleware (`verifyToken`)](#4-module-3-jwt-middleware-verifytoken)
 5. [Module 4: Chat Database Schema (`rooms` & `messages`)](#5-module-4-chat-database-schema-rooms--messages)
-6. [Deep Dive: Bcrypt vs General Hashing](#6-deep-dive-bcrypt-vs-general-hashing)
-7. [Deep Dive: How JSON Web Tokens (JWT) Work](#7-deep-dive-how-json-web-tokens-jwt-work)
-8. [Deep Dive: Foreign Keys, Relationships & CASCADE](#8-deep-dive-foreign-keys-relationships--cascade)
-9. [Security Best Practices Learned](#9-security-best-practices-learned)
-10. [Interview Prep: Ready-to-Speak Scripts](#10-interview-prep-ready-to-speak-scripts)
-11. [Top Technical Interview Questions & Answers (Q&A)](#11-top-technical-interview-questions--answers-qa)
+6. [Module 5: Room Controller (`handleCreateRoom` & `handleGetRooms`)](#6-module-5-room-controller)
+7. [Module 6: Message Controller (`handleSendMessage` & `handleGetMessages`)](#7-module-6-message-controller)
+8. [Module 7: Chat Routes & Complete API Map](#8-module-7-chat-routes--complete-api-map)
+9. [Deep Dive: Bcrypt vs General Hashing](#9-deep-dive-bcrypt-vs-general-hashing)
+10. [Deep Dive: How JSON Web Tokens (JWT) Work](#10-deep-dive-how-json-web-tokens-jwt-work)
+11. [Deep Dive: Foreign Keys, Relationships & CASCADE](#11-deep-dive-foreign-keys-relationships--cascade)
+12. [Deep Dive: RESTful HTTP Methods](#12-deep-dive-restful-http-methods)
+13. [Security Best Practices Learned](#13-security-best-practices-learned)
+14. [Interview Prep: Ready-to-Speak Scripts](#14-interview-prep-ready-to-speak-scripts)
+15. [Top Technical Interview Questions & Answers (Q&A)](#15-top-technical-interview-questions--answers-qa)
 
 ---
 
@@ -273,9 +277,84 @@ CREATE TABLE messages (
 | **`TEXT`** | Stores large strings (messages can be long), unlike `VARCHAR(255)` which has a limit. |
 | **`TIMESTAMP DEFAULT CURRENT_TIMESTAMP`** | Automatically records the exact date & time when a row is inserted. |
 
+## 6. Module 5: Room Controller (`handleCreateRoom` & `handleGetRooms`)
+
+### 🧠 Logic Mind Map
+```
+🏠 Room Controller (controller/roomController.js)
+  ├── handleCreateRoom (POST /api/chat/rooms) 🔐
+  │     ├── Validate: name required?
+  │     ├── req.user.id ← from verifyToken (who creates it)
+  │     ├── Duplicate name? ─► ER_DUP_ENTRY ─► 400
+  │     └── Success ─► 201 + roomId
+  └── handleGetRooms (GET /api/chat/rooms) 🔐
+        └── getAllRooms() with JOIN ─► returns rooms + creator name
+```
+
+### 💡 Key Concept: MySQL Error Codes
+```javascript
+// MySQL throws specific error codes we can catch:
+if (error.code === "ER_DUP_ENTRY") {
+  // UNIQUE constraint violated — room name already exists!
+  return res.status(400).json({ message: "Room name already exists" });
+}
+```
+
 ---
 
-## 6. Deep Dive: Bcrypt vs General Hashing
+## 7. Module 6: Message Controller (`handleSendMessage` & `handleGetMessages`)
+
+### 🧠 Logic Mind Map
+```
+💬 Message Controller (controller/messageController.js)
+  ├── handleSendMessage (POST /api/chat/messages) 🔐
+  │     ├── Validate: roomId + content required?
+  │     ├── req.user.id ← from verifyToken (who sends it)
+  │     └── createMessage(roomId, userId, content) ─► 201
+  └── handleGetMessages (GET /api/chat/messages/:roomId) 🔐
+        ├── roomId from req.params (URL parameter)
+        └── getMessagesRoom(roomId) with JOIN ─► messages + username
+```
+
+### 💡 Key Concept: `req.body` vs `req.params` vs `req.query`
+| Source | How to Access | Example URL | Use Case |
+| :--- | :--- | :--- | :--- |
+| **`req.body`** | POST/PUT request body | N/A (JSON payload) | Creating/updating data |
+| **`req.params`** | URL path parameters (`:id`) | `/messages/5` → `req.params.roomId = 5` | Getting specific resource |
+| **`req.query`** | URL query string (`?key=val`) | `/rooms?page=2` → `req.query.page = 2` | Filtering/pagination |
+
+---
+
+## 8. Module 7: Chat Routes & Complete API Map
+
+### 📜 Route File Structure (`routes/chatRoutes.js`)
+```javascript
+// All routes under /api/chat—all protected with verifyToken 🔐
+router.post("/rooms", verifyToken, handleCreateRoom);
+router.get("/rooms", verifyToken, handleGetRooms);
+router.post("/messages", verifyToken, handleSendMessage);
+router.get("/messages/:roomId", verifyToken, handleGetMessages);
+```
+
+### 🗺️ Complete API Endpoint Map
+```
+📡 API Endpoints
+  │
+  ├── /api/auth
+  │     ├── POST   /signup              → Register new user
+  │     ├── POST   /login               → Login & get JWT token
+  │     └── GET    /me           🔐     → Get logged-in user profile
+  │
+  └── /api/chat (ALL PROTECTED 🔐)
+        ├── POST   /rooms               → Create a new room
+        ├── GET    /rooms               → Get all rooms
+        ├── POST   /messages            → Send a message
+        └── GET    /messages/:roomId    → Get messages of a room
+```
+
+---
+
+## 9. Deep Dive: Bcrypt vs General Hashing
 
 ### ❓ What is the difference?
 - **Hashing (e.g., MD5, SHA-256):** A general one-way function designed for **speed and data integrity**. Because it is fast, attackers can calculate billions of hashes per second using GPUs and **Rainbow Tables**.
@@ -287,7 +366,7 @@ CREATE TABLE messages (
 
 ---
 
-## 7. Deep Dive: How JSON Web Tokens (JWT) Work
+## 10. Deep Dive: How JSON Web Tokens (JWT) Work
 
 A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 1. **Header:** Contains the algorithm (`HS256`) and token type (`JWT`).
@@ -296,7 +375,7 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 
 ---
 
-## 8. Deep Dive: Foreign Keys, Relationships & CASCADE
+## 11. Deep Dive: Foreign Keys, Relationships & CASCADE
 
 ### Why Foreign Keys Matter:
 Without Foreign Keys, your database has **no rules**. Someone could insert a message with `user_id = 999` even if no user with ID 999 exists. Foreign Keys enforce **Referential Integrity** — every relationship must point to a real, existing row.
@@ -310,7 +389,32 @@ Without Foreign Keys, your database has **no rules**. Someone could insert a mes
 
 ---
 
-## 9. Security Best Practices Learned
+## 12. Deep Dive: RESTful HTTP Methods
+
+### Why HTTP Methods Matter:
+In REST APIs, the **HTTP method** tells the server **what action** to perform. Using wrong methods (e.g., GET to create data) breaks REST conventions and confuses other developers.
+
+| Method | Action | Example | Body? |
+| :--- | :--- | :--- | :--- |
+| **`GET`** | **Read** data | `GET /rooms` → fetch all rooms | ❌ No |
+| **`POST`** | **Create** new data | `POST /rooms` → create a room | ✅ Yes |
+| **`PUT`** | **Update** entire resource | `PUT /rooms/5` → update room 5 | ✅ Yes |
+| **`PATCH`** | **Partial update** | `PATCH /rooms/5` → update room name only | ✅ Yes |
+| **`DELETE`** | **Delete** data | `DELETE /rooms/5` → delete room 5 | ❌ No |
+
+### Common Mistake We Caught:
+```javascript
+// ❌ WRONG: Using POST to GET data
+router.post("/messages/:roomId", handleGetMessages);
+
+// ✅ CORRECT: GET for reading, POST for creating
+router.get("/messages/:roomId", handleGetMessages);
+router.post("/messages", handleSendMessage);
+```
+
+---
+
+## 13. Security Best Practices Learned
 
 | Security Rule | Why it is mandatory |
 | :--- | :--- |
@@ -323,7 +427,7 @@ Without Foreign Keys, your database has **no rules**. Someone could insert a mes
 
 ---
 
-## 10. Interview Prep: Ready-to-Speak Scripts
+## 14. Interview Prep: Ready-to-Speak Scripts
 
 ### 🎙️ How to explain `registerUser` & `loginUser` to an Interviewer:
 > *"In my authentication system, I implemented registration and login controllers following the **MVC pattern** and the **fail-fast principle**.*
@@ -335,7 +439,7 @@ Without Foreign Keys, your database has **no rules**. Someone could insert a mes
 
 ---
 
-## 11. Top Technical Interview Questions & Answers (Q&A)
+## 15. Top Technical Interview Questions & Answers (Q&A)
 
 ### ❓ Q1: Why use `bcrypt` instead of `crypto.createHash('sha256')` for passwords?
 > **Answer:** SHA-256 is designed for fast hashing (data integrity / checksums). Because modern GPUs can calculate billions of SHA-256 hashes per second, attackers can easily brute-force passwords or use precomputed **Rainbow Tables**.  
@@ -394,3 +498,16 @@ Without Foreign Keys, your database has **no rules**. Someone could insert a mes
 
 ### ❓ Q10: What is `ON DELETE CASCADE` and when would you NOT use it?
 > **Answer:** `ON DELETE CASCADE` automatically deletes all child rows when the parent row is deleted. For example, deleting a chat room also deletes all its messages. You would **NOT** use it when you want to preserve history — for example, in an e-commerce app, you wouldn't want to delete all orders when a user deletes their account. In that case, you'd use `ON DELETE SET NULL` or `ON DELETE RESTRICT`.
+
+---
+
+### ❓ Q11: What is the difference between `req.body`, `req.params`, and `req.query`?
+> **Answer:**
+> - **`req.body`** — Data sent in the POST/PUT request body (JSON payload). Used for creating or updating resources.
+> - **`req.params`** — Dynamic URL segments defined with `:param`. Example: `/messages/:roomId` → `req.params.roomId`. Used for identifying specific resources.
+> - **`req.query`** — Key-value pairs after `?` in the URL. Example: `/rooms?page=2` → `req.query.page`. Used for filtering, sorting, pagination.
+
+---
+
+### ❓ Q12: Why should every chat route be protected with `verifyToken` middleware?
+> **Answer:** Without `verifyToken`, anyone can call our API endpoints without being logged in — they could create rooms, read messages, or impersonate other users. By placing `verifyToken` on every chat route, we ensure: (1) Only authenticated users can access chat features, (2) We know **who** is performing each action via `req.user.id`, and (3) We prevent unauthorized access to private conversations.
