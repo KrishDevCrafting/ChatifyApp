@@ -15,7 +15,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-app.use("/api/chat", chatRouter);
+
 io.on("connection", (socket) => {
   console.log("a user connected..!", socket.id);
 
@@ -43,7 +43,7 @@ io.on("connection", (socket) => {
 });
 app.use(express.json());
 app.use("/api/auth", router);
-
+app.use("/api/chat",chatRouter)
 app.get("/", (req, res) => {
   res.send("<h1>Hello world</h1>");
 });

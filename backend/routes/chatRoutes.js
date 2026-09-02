@@ -2,7 +2,7 @@ import express from "express";
 import {
   handleCreateRoom,
   handleGetRooms,
-} from "../controller/chatController.js";
+} from "../controller/roomController.js";
 import verifyToken from "../middleware/verifyToken.js";
 import {
   handleGetMessages,
@@ -10,10 +10,10 @@ import {
 } from "../controller/messageController.js";
 const router = express.Router();
 
-router.get("/rooms", verifyToken, handleCreateRoom);
+router.post("/rooms", verifyToken, handleCreateRoom);
 
-router.get("/rooms", verifyToken, handleSendMessage);
+router.get("/rooms", handleGetRooms);
 
-router.post("/messages", verifyToken.handleGetMessages);
+router.post("/messages/:roomId", verifyToken, handleGetMessages);
 
 export default router;
