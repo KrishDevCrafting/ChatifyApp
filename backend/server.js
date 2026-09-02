@@ -4,7 +4,7 @@ import express from "express";
 import { createServer } from "node:http";
 import pool from "./Config/db.js";
 import router from "./routes/authRoutes.js";
-
+import chatRouter from "./routes/chatRoutes.js";
 const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3000;
@@ -15,7 +15,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
+app.use("/api/chat", chatRouter);
 io.on("connection", (socket) => {
   console.log("a user connected..!", socket.id);
 
