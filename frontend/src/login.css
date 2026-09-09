@@ -1,0 +1,864 @@
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background: #121319;
+  color: #e3e1eb;
+}
+
+/* =========================
+   PAGE
+========================= */
+
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: #121319;
+}
+
+/* =========================
+   AMBIENT ORBS
+========================= */
+
+.ambient-orbs {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+}
+
+.orb-1 {
+  width: 720px;
+  height: 520px;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(128, 131, 255, 0.15);
+  animation: orbFloat1 18s ease-in-out infinite alternate;
+}
+
+.orb-2 {
+  width: 540px;
+  height: 540px;
+  right: -80px;
+  bottom: 40px;
+  background: rgba(111, 0, 190, 0.2);
+  filter: blur(160px);
+  animation: orbFloat2 22s ease-in-out infinite alternate;
+}
+
+.orb-3 {
+  width: 460px;
+  height: 460px;
+  left: -100px;
+  top: 33%;
+  background: rgba(0, 155, 209, 0.15);
+  filter: blur(150px);
+  animation: orbFloat3 16s ease-in-out infinite alternate;
+}
+
+/* =========================
+   CONTAINER
+========================= */
+
+.login-container {
+  width: 100%;
+  max-width: 460px;
+  padding: 24px;
+  position: relative;
+  z-index: 10;
+  animation: cardEntrance 0.9s
+    cubic-bezier(0.16, 1, 0.3, 1)
+    forwards;
+}
+
+/* =========================
+   CARD GLOW
+========================= */
+
+.card-glow {
+  position: absolute;
+  inset: 10px;
+  border-radius: 28px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(128, 131, 255, 0.25),
+    rgba(111, 0, 190, 0.3),
+    rgba(0, 155, 209, 0.25)
+  );
+
+  filter: blur(30px);
+  opacity: 0.7;
+}
+
+/* =========================
+   GLASS CARD
+========================= */
+
+.glass-card {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --glare-opacity: 0;
+
+  position: relative;
+  width: 100%;
+  padding: 40px;
+
+  border-radius: 16px;
+
+  background: rgba(30, 31, 38, 0.75);
+
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 28px 68px -12px rgba(0, 0, 0, 0.78),
+    0 0 80px -20px rgba(128, 131, 255, 0.22);
+
+  overflow: hidden;
+
+  transition:
+    transform 0.1s ease-out,
+    opacity 0.4s ease;
+}
+
+/* Dynamic glare */
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+
+  background: radial-gradient(
+    600px circle at var(--mouse-x) var(--mouse-y),
+    rgba(255, 255, 255, 0.08),
+    transparent 45%
+  );
+
+  pointer-events: none;
+
+  opacity: var(--glare-opacity);
+
+  transition: opacity 0.4s ease;
+
+  z-index: 2;
+}
+
+/* =========================
+   SHIMMER
+========================= */
+
+.glass-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 2px;
+
+  overflow: hidden;
+}
+
+.glass-shimmer div {
+  width: 50%;
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+
+  animation: glassEdgeSweep 6.5s ease-in-out infinite;
+}
+
+/* =========================
+   LOGO
+========================= */
+
+.logo-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+
+  margin-bottom: 16px;
+}
+
+.logo-glow {
+  position: absolute;
+  inset: -12px;
+
+  border-radius: 16px;
+
+  background: linear-gradient(
+    135deg,
+    #c0c1ff,
+    #ddb7ff
+  );
+
+  filter: blur(18px);
+
+  opacity: 0.4;
+
+  animation: pulse 2s infinite;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+
+  border-radius: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  position: relative;
+
+  background: #292930;
+
+  font-size: 30px;
+
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 8px 24px -4px rgba(99, 102, 241, 0.35);
+
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05) rotate(3deg);
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-header h1 {
+  margin: 0 0 8px;
+
+  font-family: "Plus Jakarta Sans", sans-serif;
+
+  font-size: 32px;
+  line-height: 40px;
+
+  font-weight: 600;
+
+  letter-spacing: -0.025em;
+}
+
+.login-header p {
+  margin: 0;
+
+  color: #c7c4d7;
+
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* =========================
+   SOCIAL BUTTONS
+========================= */
+
+.social-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  margin-bottom: 24px;
+}
+
+.social-buttons button {
+  height: 44px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: rgba(52, 52, 59, 0.4);
+
+  color: white;
+
+  cursor: pointer;
+
+  font-size: 18px;
+
+  transition: all 0.3s ease;
+
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.social-buttons button:hover {
+  background: rgba(52, 52, 59, 0.75);
+  transform: translateY(-2px);
+}
+
+.social-buttons button:active {
+  transform: scale(0.95);
+}
+
+.google-icon {
+  color: #4285f4;
+  font-weight: 700;
+}
+
+.github-icon {
+  color: white;
+}
+
+.apple-icon {
+  color: white;
+}
+
+/* =========================
+   DIVIDER
+========================= */
+
+.divider {
+  position: relative;
+
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 24px;
+}
+
+.divider::before {
+  content: "";
+
+  width: 100%;
+  height: 1px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(144, 143, 160, 0.45),
+    transparent
+  );
+}
+
+.divider span {
+  position: absolute;
+
+  padding: 0 12px;
+
+  background: #1e1f26;
+
+  color: #908fa0;
+
+  font-family: "Inter", sans-serif;
+
+  font-size: 11px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.04em;
+}
+
+/* =========================
+   FORM
+========================= */
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #c7c4d7;
+
+  font-family: "Inter", sans-serif;
+
+  font-size: 13px;
+
+  font-weight: 500;
+}
+
+.password-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.password-label a {
+  color: #c0c1ff;
+
+  text-decoration: none;
+
+  font-size: 13px;
+
+  transition: 0.2s;
+}
+
+.password-label a:hover {
+  text-decoration: underline;
+  color: #e1e0ff;
+}
+
+/* =========================
+   INPUT
+========================= */
+
+.input-wrapper {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  border-radius: 12px;
+
+  background: rgba(52, 52, 59, 0.3);
+
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+
+  transition: all 0.3s ease;
+}
+
+.input-wrapper:focus-within {
+  background: rgba(52, 52, 59, 0.6);
+
+  box-shadow:
+    0 0 0 2px rgba(192, 193, 255, 0.4),
+    0 0 20px rgba(192, 193, 255, 0.2);
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+
+  color: #908fa0;
+
+  pointer-events: none;
+}
+
+.input-wrapper input {
+  width: 100%;
+  height: 48px;
+
+  padding: 0 16px 0 44px;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #e3e1eb;
+
+  font-family: "Plus Jakarta Sans", sans-serif;
+
+  font-size: 14px;
+}
+
+.input-wrapper input::placeholder {
+  color: rgba(144, 143, 160, 0.7);
+}
+
+/* =========================
+   PASSWORD TOGGLE
+========================= */
+
+.password-toggle {
+  position: absolute;
+
+  right: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #908fa0;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.password-toggle:hover {
+  color: #e3e1eb;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================
+   REMEMBER
+========================= */
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  cursor: pointer;
+
+  color: #c7c4d7;
+
+  font-size: 12px;
+}
+
+.remember input {
+  width: 18px;
+  height: 18px;
+
+  accent-color: #8083ff;
+
+  cursor: pointer;
+}
+
+/* =========================
+   SUBMIT
+========================= */
+
+.submit-button {
+  position: relative;
+
+  width: 100%;
+  height: 48px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: linear-gradient(
+    90deg,
+    #8083ff,
+    #c0c1ff,
+    #6f00be
+  );
+
+  background-size: 200% auto;
+
+  color: #1000a9;
+
+  font-family: "Inter", sans-serif;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 24px -4px rgba(128, 131, 255, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+
+  animation: ctaGradientFlow 4s ease infinite;
+
+  transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+  filter: brightness(1.1);
+
+  box-shadow:
+    0 0 28px rgba(128, 131, 255, 0.55);
+}
+
+.submit-button:active {
+  transform: scale(0.98);
+}
+
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.arrow {
+  transition: transform 0.2s ease;
+}
+
+.submit-button:hover .arrow {
+  transform: translateX(5px);
+}
+
+/* =========================
+   SPINNER
+========================= */
+
+.spinner {
+  width: 20px;
+  height: 20px;
+
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+/* =========================
+   SIGNUP
+========================= */
+
+.signup {
+  margin-top: 24px;
+
+  text-align: center;
+}
+
+.signup p {
+  margin: 0;
+
+  color: #c7c4d7;
+
+  font-size: 14px;
+}
+
+.signup a {
+  margin-left: 6px;
+
+  color: #c0c1ff;
+
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+.signup a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   SECURITY FOOTER
+========================= */
+
+.security-footer {
+  margin-top: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  color: #908fa0;
+
+  font-family: "Inter", sans-serif;
+
+  font-size: 11px;
+}
+
+.security-footer span:first-child {
+  color: #c0c1ff;
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes orbFloat1 {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  33% {
+    transform: translate(-45%, -55%) scale(1.08);
+  }
+
+  66% {
+    transform: translate(-53%, -47%) scale(0.95);
+  }
+}
+
+@keyframes orbFloat2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  40% {
+    transform: translate(-40px, -45px) scale(1.12);
+  }
+
+  75% {
+    transform: translate(30px, 35px) scale(0.92);
+  }
+}
+
+@keyframes orbFloat3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(35px, 30px) scale(1.06);
+  }
+}
+
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes glassEdgeSweep {
+  0% {
+    transform: translateX(-150%);
+  }
+
+  50%,
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes ctaGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .glass-card {
+    padding: 28px 22px;
+  }
+
+  .login-header h1 {
+    font-size: 26px;
+  }
+
+  .login-header p {
+    font-size: 13px;
+  }
+
+  .security-footer {
+    flex-wrap: wrap;
+    text-align: center;
+  }
+
+  .orb-1 {
+    width: 400px;
+    height: 400px;
+  }
+
+  .orb-2 {
+    width: 350px;
+    height: 350px;
+  }
+
+  .orb-3 {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .glass-shimmer div,
+  .login-container,
+  .submit-button,
+  .logo-glow,
+  .spinner {
+    animation: none !important;
+  }
+
+  .glass-card {
+    transform: none !important;
+  }
+}
+
