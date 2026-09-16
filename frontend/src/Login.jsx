@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import "./Login.css";
+import "./login.css";
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -60,21 +60,17 @@ function Login() {
 
   return (
     <main className="login-page">
-
       {/* Ambient Background */}
       <div className="ambient-orbs">
-
         <div className="orb orb-1" />
 
         <div className="orb orb-2" />
 
         <div className="orb orb-3" />
-
       </div>
 
       {/* Login Container */}
       <div className="login-container">
-
         {/* Outer Glow */}
         <div className="card-glow" />
 
@@ -85,7 +81,6 @@ function Login() {
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
-
           {/* Top Shimmer */}
           <div className="glass-shimmer">
             <div />
@@ -93,77 +88,48 @@ function Login() {
 
           {/* Logo */}
           <div className="logo-wrapper">
-
             <div className="logo-glow" />
 
             <div className="logo">
               <span>💬</span>
             </div>
-
           </div>
 
           {/* Header */}
           <div className="login-header">
-
             <h1>Welcome back</h1>
 
-            <p>
-              Enter your credentials or continue with single sign-on
-            </p>
-
+            <p>Enter your credentials or continue with single sign-on</p>
           </div>
 
           {/* Social Login */}
           <div className="social-buttons">
-
-            <button
-              type="button"
-              aria-label="Sign in with Google"
-            >
+            <button type="button" aria-label="Sign in with Google">
               <span className="google-icon">G</span>
             </button>
 
-            <button
-              type="button"
-              aria-label="Sign in with GitHub"
-            >
+            <button type="button" aria-label="Sign in with GitHub">
               <span className="github-icon">●</span>
             </button>
 
-            <button
-              type="button"
-              aria-label="Sign in with Apple"
-            >
+            <button type="button" aria-label="Sign in with Apple">
               <span className="apple-icon">●</span>
             </button>
-
           </div>
 
           {/* Divider */}
           <div className="divider">
-
             <span>or continue with email</span>
-
           </div>
 
           {/* Login Form */}
-          <form
-            className="login-form"
-            onSubmit={handleSubmit}
-          >
-
+          <form className="login-form" onSubmit={handleSubmit}>
             {/* Email */}
             <div className="form-group">
-
-              <label htmlFor="login-email">
-                Email address
-              </label>
+              <label htmlFor="login-email">Email address</label>
 
               <div className="input-wrapper">
-
-                <span className="input-icon">
-                  ✉
-                </span>
+                <span className="input-icon">✉</span>
 
                 <input
                   id="login-email"
@@ -172,31 +138,19 @@ function Login() {
                   placeholder="name@work-email.com"
                   required
                 />
-
               </div>
-
             </div>
 
             {/* Password */}
             <div className="form-group">
-
               <div className="password-label">
+                <label htmlFor="login-password">Password</label>
 
-                <label htmlFor="login-password">
-                  Password
-                </label>
-
-                <a href="/forgot-password">
-                  Forgot password?
-                </a>
-
+                <a href="/forgot-password">Forgot password?</a>
               </div>
 
               <div className="input-wrapper">
-
-                <span className="input-icon">
-                  🔒
-                </span>
+                <span className="input-icon">🔒</span>
 
                 <input
                   id="login-password"
@@ -209,43 +163,23 @@ function Login() {
                 <button
                   type="button"
                   className="password-toggle"
-                  onClick={() =>
-                    setShowPassword((prev) => !prev)
-                  }
-                  aria-label={
-                    showPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "◉" : "◌"}
                 </button>
-
               </div>
-
             </div>
 
             {/* Remember Device */}
             <label className="remember">
+              <input type="checkbox" defaultChecked />
 
-              <input
-                type="checkbox"
-                defaultChecked
-              />
-
-              <span>
-                Remember this device for 30 days
-              </span>
-
+              <span>Remember this device for 30 days</span>
             </label>
 
             {/* Submit */}
-            <button
-              className="submit-button"
-              type="submit"
-              disabled={loading}
-            >
-
+            <button className="submit-button" type="submit" disabled={loading}>
               {loading ? (
                 <span className="button-content">
                   <span className="spinner" />
@@ -257,29 +191,20 @@ function Login() {
                   <span className="arrow">→</span>
                 </span>
               )}
-
             </button>
-
           </form>
 
           {/* Signup */}
           <div className="signup">
-
             <p>
               Don't have an account?
-
-              <a href="/register">
-                Create an account →
-              </a>
+              <a href="/register">Create an account →</a>
             </p>
-
           </div>
-
         </div>
 
         {/* Security Footer */}
         <div className="security-footer">
-
           <span>✓</span>
 
           <span>256-bit SSL encrypted</span>
@@ -287,14 +212,10 @@ function Login() {
           <span>•</span>
 
           <span>SOC2 Type II Certified</span>
-
         </div>
-
       </div>
-
     </main>
   );
 }
 
 export default Login;
-

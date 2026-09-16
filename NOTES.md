@@ -14,13 +14,15 @@
 6. [Module 5: Room Controller (`handleCreateRoom` & `handleGetRooms`)](#6-module-5-room-controller)
 7. [Module 6: Message Controller (`handleSendMessage` & `handleGetMessages`)](#7-module-6-message-controller)
 8. [Module 7: Chat Routes & Complete API Map](#8-module-7-chat-routes--complete-api-map)
-9. [Deep Dive: Bcrypt vs General Hashing](#9-deep-dive-bcrypt-vs-general-hashing)
-10. [Deep Dive: How JSON Web Tokens (JWT) Work](#10-deep-dive-how-json-web-tokens-jwt-work)
-11. [Deep Dive: Foreign Keys, Relationships & CASCADE](#11-deep-dive-foreign-keys-relationships--cascade)
-12. [Deep Dive: RESTful HTTP Methods](#12-deep-dive-restful-http-methods)
-13. [Security Best Practices Learned](#13-security-best-practices-learned)
-14. [Interview Prep: Ready-to-Speak Scripts](#14-interview-prep-ready-to-speak-scripts)
-15. [Top Technical Interview Questions & Answers (Q&A)](#15-top-technical-interview-questions--answers-qa)
+9. [Module 8: WebSocket JWT Authentication & Real-Time Chat](#9-module-8-websocket-jwt-authentication--real-time-chat)
+10. [Deep Dive: Bcrypt vs General Hashing](#10-deep-dive-bcrypt-vs-general-hashing)
+11. [Deep Dive: How JSON Web Tokens (JWT) Work](#11-deep-dive-how-json-web-tokens-jwt-work)
+12. [Deep Dive: Foreign Keys, Relationships & CASCADE](#12-deep-dive-foreign-keys-relationships--cascade)
+13. [Deep Dive: RESTful HTTP Methods](#13-deep-dive-restful-http-methods)
+14. [Deep Dive: HTTP Auth vs WebSocket Auth](#14-deep-dive-http-auth-vs-websocket-auth)
+15. [Security Best Practices Learned](#15-security-best-practices-learned)
+16. [Interview Prep: Ready-to-Speak Scripts](#16-interview-prep-ready-to-speak-scripts)
+17. [Top Technical Interview Questions & Answers (Q&A)](#17-top-technical-interview-questions--answers-qa)
 
 ---
 
@@ -352,9 +354,65 @@ router.get("/messages/:roomId", verifyToken, handleGetMessages);
         └── GET    /messages/:roomId    → Get messages of a room
 ```
 
+## 9. Module 8: WebSocket JWT Authentication & Real-Time Chat
+
+### 🧠 The VIP Club Analogy
+```
+📡 WebSocket Connection Flow
+  │
+  🚶 User connects with JWT token
+  │
+  🛡️ Bouncer (io.use middleware)
+  │     ├── No token?     ─► ❌ "Get out!"
+  │     ├── Fake token?   ─► ❌ "Nice try!"
+  │     └── Valid token?  ─► ✅ socket.user = decoded
+  │
+  🎵 Inside the Club (io.on "connection")
+  │     ├── 🚩 join room    ─► socket.join(room) + announce
+  │     ├── 💬 chat message ─► save to DB + broadcast to room
+  │     └── 👋 disconnect   ─► log departure
+```
+
+### 💡 Core Code: Socket.IO JWT Middleware
+```javascript
+// Bouncer — runs ONCE when user first connects
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error("No token"));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;  // Now available in all socket events!
+    next();
+  } catch (error) {
+    return next(new Error("Invalid token"));
+  }
+});
+```
+
+### 💡 Core Code: Secure Connection Handler
+```javascript
+io.on("connection", (socket) => {
+  // Username comes from JWT, NOT from client — tamper-proof!
+  socket.on("chat message", async ({ room, text }) => {
+    await createMessage(socket.data.room, socket.user.id, text); // Save to DB
+    io.to(room).emit("chat message", {
+      username: socket.user.username,  // From verified JWT
+      text,
+    });
+  });
+});
+```
+
+### 🔑 Security Win: Before vs After
+| Before (Insecure) | After (Secure) |
+| :--- | :--- |
+| Anyone can connect | Only JWT holders can connect |
+| Client sends username (fakeable) | Username from verified JWT (tamper-proof) |
+| Messages lost on refresh | Messages saved to database |
+
 ---
 
-## 9. Deep Dive: Bcrypt vs General Hashing
+## 10. Deep Dive: Bcrypt vs General Hashing
 
 ### ❓ What is the difference?
 - **Hashing (e.g., MD5, SHA-256):** A general one-way function designed for **speed and data integrity**. Because it is fast, attackers can calculate billions of hashes per second using GPUs and **Rainbow Tables**.
@@ -366,7 +424,7 @@ router.get("/messages/:roomId", verifyToken, handleGetMessages);
 
 ---
 
-## 10. Deep Dive: How JSON Web Tokens (JWT) Work
+## 11. Deep Dive: How JSON Web Tokens (JWT) Work
 
 A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 1. **Header:** Contains the algorithm (`HS256`) and token type (`JWT`).
@@ -375,7 +433,7 @@ A JWT consists of 3 parts separated by dots (`.`): `Header.Payload.Signature`
 
 ---
 
-## 11. Deep Dive: Foreign Keys, Relationships & CASCADE
+## 12. Deep Dive: Foreign Keys, Relationships & CASCADE
 
 ### Why Foreign Keys Matter:
 Without Foreign Keys, your database has **no rules**. Someone could insert a message with `user_id = 999` even if no user with ID 999 exists. Foreign Keys enforce **Referential Integrity** — every relationship must point to a real, existing row.
@@ -389,7 +447,7 @@ Without Foreign Keys, your database has **no rules**. Someone could insert a mes
 
 ---
 
-## 12. Deep Dive: RESTful HTTP Methods
+## 13. Deep Dive: RESTful HTTP Methods
 
 ### Why HTTP Methods Matter:
 In REST APIs, the **HTTP method** tells the server **what action** to perform. Using wrong methods (e.g., GET to create data) breaks REST conventions and confuses other developers.
@@ -412,9 +470,20 @@ router.get("/messages/:roomId", handleGetMessages);
 router.post("/messages", handleSendMessage);
 ```
 
+## 14. Deep Dive: HTTP Auth vs WebSocket Auth
+
+### Key Difference:
+| | HTTP (Express) | WebSocket (Socket.IO) |
+| :--- | :--- | :--- |
+| **Where token lives** | `req.headers.authorization` | `socket.handshake.auth.token` |
+| **Middleware** | `app.use(verifyToken)` | `io.use((socket, next) => ...)` |
+| **User data** | `req.user` | `socket.user` |
+| **When verified** | Every single request | Once (on initial connection) |
+| **Connection type** | Short-lived (request-response) | Long-lived (persistent) |
+
 ---
 
-## 13. Security Best Practices Learned
+## 15. Security Best Practices Learned
 
 | Security Rule | Why it is mandatory |
 | :--- | :--- |
@@ -427,7 +496,7 @@ router.post("/messages", handleSendMessage);
 
 ---
 
-## 14. Interview Prep: Ready-to-Speak Scripts
+## 16. Interview Prep: Ready-to-Speak Scripts
 
 ### 🎙️ How to explain `registerUser` & `loginUser` to an Interviewer:
 > *"In my authentication system, I implemented registration and login controllers following the **MVC pattern** and the **fail-fast principle**.*
@@ -439,7 +508,7 @@ router.post("/messages", handleSendMessage);
 
 ---
 
-## 15. Top Technical Interview Questions & Answers (Q&A)
+## 17. Top Technical Interview Questions & Answers (Q&A)
 
 ### ❓ Q1: Why use `bcrypt` instead of `crypto.createHash('sha256')` for passwords?
 > **Answer:** SHA-256 is designed for fast hashing (data integrity / checksums). Because modern GPUs can calculate billions of SHA-256 hashes per second, attackers can easily brute-force passwords or use precomputed **Rainbow Tables**.  
@@ -511,3 +580,13 @@ router.post("/messages", handleSendMessage);
 
 ### ❓ Q12: Why should every chat route be protected with `verifyToken` middleware?
 > **Answer:** Without `verifyToken`, anyone can call our API endpoints without being logged in — they could create rooms, read messages, or impersonate other users. By placing `verifyToken` on every chat route, we ensure: (1) Only authenticated users can access chat features, (2) We know **who** is performing each action via `req.user.id`, and (3) We prevent unauthorized access to private conversations.
+
+---
+
+### ❓ Q13: What is `socket.handshake.auth` and how is it different from HTTP headers?
+> **Answer:** In Socket.IO, `socket.handshake.auth` is a special object sent by the client during the initial WebSocket connection. Unlike HTTP where we send the JWT in the `Authorization` header with every request, WebSocket auth happens **only once** during the handshake. After that, the connection stays open and `socket.user` persists for the entire session.
+
+---
+
+### ❓ Q14: Why do we use `socket.user.username` instead of letting the client send their username?
+> **Answer:** If the client sends their own username, anyone can fake it — they could impersonate another user by simply changing the username string. By extracting the username from the **verified JWT token** (`socket.user.username`), we guarantee the identity is tamper-proof because only the server can sign valid JWTs with the secret key.
