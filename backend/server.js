@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import express from "express";
 import { createServer } from "node:http";
 import pool from "./Config/db.js";
+import { createMessage } from "./models/message.js";
 import router from "./routes/authRoutes.js";
 import chatRouter from "./routes/chatRoutes.js";
 import jwt from "jsonwebtoken";
@@ -35,28 +36,29 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("a user connected..!", socket.id);
+  console.log(`✅ ${socket.user.username} connected! (ID: ${socket.id})`);
 
-  socket.on("join room", ({ username, room }) => {
+  socket.on("join room", (room) => {
     socket.join(room);
-    socket.data.username = username;
     socket.data.room = room;
 
     io.to(room).emit("user joined", {
-      username,
-      message: `${username} joined the chat`,
+      username: socket.user.username,
+      message: `${socket.user.username} joined the chat`,
     });
   });
 
-  socket.on("chat message", ({ username, room, text }) => {
+  socket.on("chat message", async ({ room, text }) => {
+    await createMessage(socket.data.room, socket.user.id, text);
+
     io.to(room).emit("chat message", {
-      username,
+      username: socket.user.username,
       text,
     });
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected..!", socket.id);
+    console.log(`❌ ${socket.user.username} disconnected!`);
   });
 });
 app.use(express.json());
