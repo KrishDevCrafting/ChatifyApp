@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import pool from "./Config/db.js";
 import router from "./routes/authRoutes.js";
 import chatRouter from "./routes/chatRoutes.js";
+import jwt from "jsonwebtoken";
 const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,23 @@ const io = new Server(server, {
     origin: ["http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST"],
   },
+});
+
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error("Authenetication error: No token provided"));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    socket.user = decoded;
+    next();
+  } catch (error) {
+    return next(new Error("authenication error: Invalid token"));
+  }
 });
 
 io.on("connection", (socket) => {
@@ -43,7 +61,7 @@ io.on("connection", (socket) => {
 });
 app.use(express.json());
 app.use("/api/auth", router);
-app.use("/api/chat",chatRouter)
+app.use("/api/chat", chatRouter);
 app.get("/", (req, res) => {
   res.send("<h1>Hello world</h1>");
 });
