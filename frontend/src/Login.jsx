@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import "./login.css";
-
+import { useNavigate } from "react-router-dom";
 function Login() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const cardRef = useRef(null);
 
@@ -46,18 +49,32 @@ function Login() {
     `;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setLoading(true);
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Temporary loading simulation.
-    // Later replace this with your API call.
-    setTimeout(() => {
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      navigate("/home");
+    } catch (error) {
+      alert("server error, please check if backend is working!");
+    } finally {
       setLoading(false);
-    }, 1400);
+    }
   };
-
   return (
     <main className="login-page">
       {/* Ambient Background */}
@@ -136,6 +153,8 @@ function Login() {
                   name="email"
                   type="email"
                   placeholder="name@work-email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -157,6 +176,8 @@ function Login() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
 
