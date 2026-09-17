@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Server } from "socket.io";
+import cors from "cors";
 import express from "express";
 import { createServer } from "node:http";
 import pool from "./Config/db.js";
@@ -9,6 +10,7 @@ import chatRouter from "./routes/chatRoutes.js";
 import jwt from "jsonwebtoken";
 const app = express();
 const server = createServer(app);
+app.use(cors());
 const PORT = process.env.PORT || 3000;
 
 const io = new Server(server, {
@@ -61,6 +63,12 @@ io.on("connection", (socket) => {
     console.log(`❌ ${socket.user.username} disconnected!`);
   });
 });
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use("/api/auth", router);
 app.use("/api/chat", chatRouter);
