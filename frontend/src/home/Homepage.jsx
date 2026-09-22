@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { connectWs } from "../ws";
-        
+
 function HomePage() {
   const socket = useRef(null);
   const room = "general";
@@ -10,6 +10,25 @@ function HomePage() {
   const [messages, setMessage] = useState([]);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch("http://localhost:3000/api/chat/messages/1", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.messages) {
+          const formatted = data.messages.map((m) => ({
+            type: "chat",
+            username: m.username,
+            text: m.content,
+          }));
+          setMessage(formatted);
+        }
+      })
+      .catch((err) => console.error("Error loading cha history", err));
     socket.current = connectWs();
 
     socket.current.on("connect", () => {

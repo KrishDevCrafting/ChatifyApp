@@ -41,22 +41,36 @@ io.on("connection", (socket) => {
   console.log(`✅ ${socket.user.username} connected! (ID: ${socket.id})`);
 
   socket.on("join room", (room) => {
-    socket.join(room);
-    socket.data.room = room;
+    const roomName = typeof room === "object" ? room.room : room;
+    const roomId = roomName === "general" ? 1 : Number(roomName) || 1;
 
-    io.to(room).emit("user joined", {
+    socket.join(roomName);
+    socket.data.room = roomName;
+    socket.data.roomId = roomId;
+
+    io.to(roomName).emit("user joined", {
       username: socket.user.username,
       message: `${socket.user.username} joined the chat`,
     });
   });
 
-  socket.on("chat message", async ({ room, text }) => {
-    await createMessage(socket.data.room, socket.user.id, text);
+  socket.on("chat message", async (data) => {
+    try {
+      const text = typeof data === "object" ? data.text : data;
+      const room = (typeof data === "object" && data.room) || socket.data.room || "general";
+      const roomId = socket.data.roomId || (room === "general" ? 1 : Number(room)) || 1;
 
-    io.to(room).emit("chat message", {
-      username: socket.user.username,
-      text,
-    });
+      // 1. Save to DB
+      await createMessage(roomId, socket.user.id, text);
+
+      // 2. Broadcast to room
+      io.to(room).emit("chat message", {
+        username: socket.user.username,
+        text,
+      });
+    } catch (err) {
+      console.error("Error saving message:", err);
+    }
   });
 
   socket.on("disconnect", () => {
@@ -67,7 +81,7 @@ app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:5174"],
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
 app.use("/api/auth", router);
