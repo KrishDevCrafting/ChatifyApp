@@ -20,15 +20,28 @@ const getUserColor = (name) => {
   return colors[hash % colors.length];
 };
 
+// 🔑 Helper: JWT token se current user nikalna
+const getCurrentUsername = () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.username || "";
+  } catch {
+    return "";
+  }
+};
+
 function HomePage() {
   const socket = useRef(null);
   const room = "general";
+  const currentUser = getCurrentUsername();
   const [update, setupdate] = useState("");
   const [messages, setMessage] = useState([]);
   const [typingUser, setTypingUser] = useState("");
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
-
+  const [onlineUsers, setOnlineUsers] = useState([]);
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -53,6 +66,10 @@ function HomePage() {
 
     // 2️⃣ Socket connection
     socket.current = connectWs();
+
+    socket.current.on("room users", (users) => {
+      setOnlineUsers(users);
+    });
 
     socket.current.on("connect", () => {
       console.log("connected to backend:", socket.current.id);
@@ -123,9 +140,22 @@ function HomePage() {
     <>
       <div className="flex min-h-screen justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold text-red-600 mb-8 text-center font-mono">
-            ChatUp
-          </h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-red-600 font-mono">
+              ChatUp
+            </h1>
+
+            <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-zinc-800/80 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>
+                {onlineUsers.length <= 1
+                  ? "Just you online"
+                  : `${onlineUsers.length} online (${onlineUsers
+                      .map((u) => (u === currentUser ? "You" : u))
+                      .join(", ")})`}
+              </span>
+            </div>
+          </div>
 
           <div>
             {messages.map((message, index) => (

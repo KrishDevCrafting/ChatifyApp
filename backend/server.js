@@ -12,6 +12,7 @@ const app = express();
 const server = createServer(app);
 app.use(cors());
 const PORT = process.env.PORT || 3000;
+const onlineUsers = new Map();
 
 const io = new Server(server, {
   cors: {
@@ -47,6 +48,24 @@ io.on("connection", (socket) => {
     socket.join(roomName);
     socket.data.room = roomName;
     socket.data.roomId = roomId;
+
+    // 🟢 1. Register in onlineUsers map
+    onlineUsers.set(socket.id, {
+      username: socket.user.username,
+      room: roomName,
+    });
+
+    // 🟢 2. Calculate unique online users in this room
+    const roomUsers = Array.from(
+      new Set(
+        Array.from(onlineUsers.values())
+          .filter((u) => u.room === roomName)
+          .map((u) => u.username)
+      )
+    );
+
+    // 🟢 3. Broadcast updated online list to room
+    io.to(roomName).emit("room users", roomUsers);
 
     io.to(roomName).emit("user joined", {
       username: socket.user.username,
@@ -90,6 +109,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    const user = onlineUsers.get(socket.id);
+    onlineUsers.delete(socket.id);
+
+    if (user) {
+      const roomUsers = Array.from(
+        new Set(
+          Array.from(onlineUsers.values())
+            .filter((u) => u.room === user.room)
+            .map((u) => u.username),
+        ),
+      );
+
+      io.to(user.room).emit("room users", roomUsers);
+    }
+
     console.log(`❌ ${socket.user.username} disconnected!`);
   });
 });
