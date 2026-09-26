@@ -1,17 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import { connectWs } from "../ws";
 
+// 🎨 Har user ke naam ke hisaab se distinct color
+const getUserColor = (name) => {
+  const colors = [
+    "text-cyan-400",
+    "text-amber-400",
+    "text-emerald-400",
+    "text-purple-400",
+    "text-pink-400",
+    "text-yellow-400",
+    "text-sky-400",
+  ];
+  if (!name) return "text-blue-400";
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash += name.charCodeAt(i);
+  }
+  return colors[hash % colors.length];
+};
+
 function HomePage() {
   const socket = useRef(null);
   const room = "general";
-  const [username, setUsername] = useState("");
-  const [isJoined, setIsJoined] = useState(false);
   const [update, setupdate] = useState("");
   const [messages, setMessage] = useState([]);
+  const [typingUser, setTypingUser] = useState("");
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
+    // 1️⃣ Chat history load karo
     fetch("http://localhost:3000/api/chat/messages/1", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -28,11 +49,14 @@ function HomePage() {
           setMessage(formatted);
         }
       })
-      .catch((err) => console.error("Error loading cha history", err));
+      .catch((err) => console.error("Error loading chat history", err));
+
+    // 2️⃣ Socket connection
     socket.current = connectWs();
 
     socket.current.on("connect", () => {
       console.log("connected to backend:", socket.current.id);
+      socket.current.emit("join room", "general");
     });
 
     socket.current.on("chat message", (message) => {
@@ -49,6 +73,15 @@ function HomePage() {
       ]);
     });
 
+    // ✍️ Real-time Typing Listeners
+    socket.current.on("user typing", ({ username }) => {
+      setTypingUser(username);
+    });
+
+    socket.current.on("user stop typing", () => {
+      setTypingUser("");
+    });
+
     return () => {
       socket.current.disconnect();
     };
@@ -56,23 +89,30 @@ function HomePage() {
 
   const handleChange = (event) => {
     setupdate(event.target.value);
-  };
 
-  const handleJoin = () => {
-    if (username.trim() === "") return;
+    // Agar abhi typing broadcast nahi kiya, toh bhej do
+    if (!isTypingRef.current) {
+      socket.current.emit("typing", room);
+      isTypingRef.current = true;
+    }
 
-    socket.current.emit("join room", {
-      username,
-      room,
-    });
-    setIsJoined(true);
+    // Debouncing: 1 second tak rukne par auto "stop typing"
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.current.emit("stop typing", room);
+      isTypingRef.current = false;
+    }, 1000);
   };
 
   const handleSend = () => {
     if (update.trim() === "") return;
 
+    // Send hote hi typing indicator cancel
+    clearTimeout(typingTimeoutRef.current);
+    socket.current.emit("stop typing", room);
+    isTypingRef.current = false;
+
     socket.current.emit("chat message", {
-      username,
       room,
       text: update,
     });
@@ -83,37 +123,18 @@ function HomePage() {
     <>
       <div className="flex min-h-screen justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold  text-red-600 mb-8 text-center font-mono">
+          <h1 className="text-3xl font-bold text-red-600 mb-8 text-center font-mono">
             ChatUp
           </h1>
-
-          {!isJoined && (
-            <div className="mb-8 flex gap-2">
-              <input
-                placeholder="Enter username"
-                type="text"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="flex-1 rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white outline-none"
-              />
-              <button
-                onClick={handleJoin}
-                type="button"
-                className="rounded bg-blue-600 px-4 py-2 font-semibold text-white"
-              >
-                Join
-              </button>
-            </div>
-          )}
 
           <div>
             {messages.map((message, index) => (
               <p
                 key={index}
-                className={`border m-1.5 p-3.5 ${
+                className={`border m-1.5 p-3.5 rounded ${
                   message.type === "notice"
                     ? "border-green-500 text-green-400"
-                    : "border-zinc-600 text-blue-400"
+                    : `border-zinc-600 ${getUserColor(message.username)}`
                 }`}
               >
                 {message.type === "notice"
@@ -123,24 +144,31 @@ function HomePage() {
             ))}
           </div>
 
-          {isJoined && (
-            <>
+          <div className="mt-8">
+            {typingUser && (
+              <p className="text-xs text-zinc-400 italic mb-2 animate-pulse">
+                ✍️ {typingUser} is typing...
+              </p>
+            )}
+
+            <div className="flex gap-2">
               <input
                 placeholder="Type here:"
                 type="text"
                 value={update}
                 onChange={handleChange}
-                className="mt-8 w-full rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white outline-none"
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                className="flex-1 rounded border border-zinc-600 bg-zinc-800 px-3 py-2 text-white outline-none"
               />
               <button
                 onClick={handleSend}
                 type="button"
-                className="send-button"
+                className="rounded bg-blue-600 px-4 py-2 font-semibold text-white cursor-pointer"
               >
                 Send
               </button>
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
     </>

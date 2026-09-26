@@ -57,8 +57,12 @@ io.on("connection", (socket) => {
   socket.on("chat message", async (data) => {
     try {
       const text = typeof data === "object" ? data.text : data;
-      const room = (typeof data === "object" && data.room) || socket.data.room || "general";
-      const roomId = socket.data.roomId || (room === "general" ? 1 : Number(room)) || 1;
+      const room =
+        (typeof data === "object" && data.room) ||
+        socket.data.room ||
+        "general";
+      const roomId =
+        socket.data.roomId || (room === "general" ? 1 : Number(room)) || 1;
 
       // 1. Save to DB
       await createMessage(roomId, socket.user.id, text);
@@ -71,6 +75,18 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("Error saving message:", err);
     }
+  });
+
+  socket.on("typing", (room = "general") => {
+    socket.to(room).emit("user typing", {
+      username: socket.user.username,
+    });
+  });
+
+  socket.on("stop typing", (room = "general") => {
+    socket.to(room).emit("user stop typing", {
+      username: socket.user.username,
+    });
   });
 
   socket.on("disconnect", () => {
