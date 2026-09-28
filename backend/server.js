@@ -41,10 +41,34 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   console.log(`✅ ${socket.user.username} connected! (ID: ${socket.id})`);
 
-  socket.on("join room", (room) => {
-    const roomName = typeof room === "object" ? room.room : room;
-    const roomId = roomName === "general" ? 1 : Number(roomName) || 1;
+  socket.on("join room", (data) => {
+    const roomName = typeof data === "object" ? data.room : data;
+    const roomId =
+      typeof data === "object" && data.roomId
+        ? Number(data.roomId)
+        : roomName === "general"
+        ? 1
+        : 1;
 
+    // 🚪 Agar user pehle kisi dusre room me tha, toh use leave karwao
+    const oldRoom = socket.data.room;
+    if (oldRoom && oldRoom !== roomName) {
+      socket.leave(oldRoom);
+
+      // Old room ke online users update karo
+      const oldRoomUsers = Array.from(
+        new Set(
+          Array.from(onlineUsers.values())
+            .filter(
+              (u) => u.room === oldRoom && u.username !== socket.user.username
+            )
+            .map((u) => u.username)
+        )
+      );
+      io.to(oldRoom).emit("room users", oldRoomUsers);
+    }
+
+    // 🏠 New room join karo
     socket.join(roomName);
     socket.data.room = roomName;
     socket.data.roomId = roomId;
@@ -90,6 +114,8 @@ io.on("connection", (socket) => {
       io.to(room).emit("chat message", {
         username: socket.user.username,
         text,
+        roomId,
+        created_at: new Date().toISOString(),
       });
     } catch (err) {
       console.error("Error saving message:", err);
