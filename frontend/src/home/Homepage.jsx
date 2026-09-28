@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { connectWs } from "../ws";
+import { API_URL } from "../config";
 
 // 🎨 Har user ke naam ke hisaab se distinct color
 const getUserColor = (name, isDark = true) => {
@@ -117,7 +118,7 @@ function HomePage() {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        `http://localhost:3000/api/chat/messages/${roomId}`,
+        `${API_URL}/api/chat/messages/${roomId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -169,7 +170,7 @@ function HomePage() {
     }
 
     // 1️⃣ Fetch available rooms
-    fetch("http://localhost:3000/api/chat/rooms", {
+    fetch(`${API_URL}/api/chat/rooms`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -302,7 +303,7 @@ function HomePage() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:3000/api/chat/rooms", {
+      const res = await fetch(`${API_URL}/api/chat/rooms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

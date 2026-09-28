@@ -14,9 +14,22 @@ app.use(cors());
 const PORT = process.env.PORT || 3000;
 const onlineUsers = new Map();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, uptime robot) or matching allowed list
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     methods: ["GET", "POST"],
   },
 });
@@ -155,7 +168,13 @@ io.on("connection", (socket) => {
 });
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     credentials: true,
   }),
 );
