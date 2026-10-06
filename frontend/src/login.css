@@ -290,6 +290,47 @@ body {
 }
 
 /* =========================
+   AUTH TOGGLE (SIGN IN / SIGN UP)
+========================= */
+
+.auth-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.auth-toggle-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #908fa0;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-toggle-btn:hover {
+  color: #e3e1eb;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.auth-toggle-btn.active {
+  background: rgba(128, 131, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(192, 193, 255, 0.35);
+  box-shadow: 0 4px 14px rgba(111, 0, 190, 0.25);
+}
+
+/* =========================
    SOCIAL BUTTONS
 ========================= */
 
@@ -664,18 +705,28 @@ body {
   font-size: 14px;
 }
 
-.signup a {
+.signup a,
+.signup-toggle-link {
   margin-left: 6px;
 
   color: #c0c1ff;
 
   font-weight: 600;
 
+  font-family: inherit;
+  font-size: 14px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.signup a:hover {
+.signup a:hover,
+.signup-toggle-link:hover {
   text-decoration: underline;
+  color: #ffffff;
 }
 
 /* =========================
