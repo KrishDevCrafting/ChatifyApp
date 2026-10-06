@@ -90,6 +90,7 @@ function HomePage() {
   const [newRoomName, setNewRoomName] = useState("");
   const [roomError, setRoomError] = useState("");
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
@@ -143,11 +144,15 @@ function HomePage() {
 
   // 🔄 Switch Active Room
   const switchRoom = (targetRoom) => {
-    if (!targetRoom || activeRoom?.id === targetRoom.id) return;
+    if (!targetRoom || activeRoom?.id === targetRoom.id) {
+      setMobileSidebarOpen(false);
+      return;
+    }
 
     setActiveRoom(targetRoom);
     setMessages([]);
     setTypingUser("");
+    setMobileSidebarOpen(false);
 
     // 1. Fetch message history for selected room
     fetchRoomMessages(targetRoom.id);
@@ -340,16 +345,27 @@ function HomePage() {
 
   return (
     <div
-      className={`flex h-screen w-screen overflow-hidden font-sans antialiased transition-colors duration-200 ${
+      className={`flex h-screen w-screen overflow-hidden font-sans antialiased transition-colors duration-200 relative ${
         isDark ? "bg-zinc-950 text-zinc-100" : "bg-slate-100 text-slate-800"
       }`}
     >
+      {/* -------------------- 📱 MOBILE BACKDROP OVERLAY -------------------- */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* -------------------- 📱 LEFT SIDEBAR: CHANNELS & ROOMS -------------------- */}
       <aside
-        className={`w-80 sm:w-88 flex flex-col border-r backdrop-blur-xl select-none transition-colors duration-200 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-80 md:relative md:translate-x-0 flex flex-col border-r backdrop-blur-xl select-none transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none ${
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
           isDark
-            ? "border-zinc-800/80 bg-zinc-900/60"
-            : "border-slate-200 bg-white/80"
+            ? "border-zinc-800/80 bg-zinc-900 md:bg-zinc-900/60"
+            : "border-slate-200 bg-white md:bg-white/80"
         }`}
       >
         {/* User Profile Bar */}
@@ -418,6 +434,18 @@ function HomePage() {
                   strokeWidth={2}
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
+              </svg>
+            </button>
+
+            {/* ✕ Close Mobile Sidebar Button */}
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              className="md:hidden p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all cursor-pointer"
+              title="Close channels menu"
+              aria-label="Close channels menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -597,36 +625,53 @@ function HomePage() {
 
       {/* -------------------- 💬 RIGHT MAIN: ACTIVE CHAT ROOM -------------------- */}
       <main
-        className={`flex-1 flex flex-col h-full relative overflow-hidden transition-colors duration-200 ${
+        className={`flex-1 flex flex-col h-full w-full min-w-0 relative overflow-hidden transition-colors duration-200 ${
           isDark ? "bg-zinc-950" : "bg-slate-50"
         }`}
       >
         {/* Top Header Bar */}
         <header
-          className={`h-16 px-6 border-b backdrop-blur-md flex items-center justify-between z-10 transition-colors duration-200 ${
+          className={`h-16 px-3 sm:px-6 border-b backdrop-blur-md flex items-center justify-between z-10 transition-colors duration-200 ${
             isDark
               ? "border-zinc-800/80 bg-zinc-900/40"
               : "border-slate-200 bg-white/80"
           }`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* 📱 Mobile Hamburger Button to open sidebar */}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className={`md:hidden p-2 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                isDark
+                  ? "bg-zinc-800/80 border-zinc-700/60 text-zinc-300 hover:text-white"
+                  : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900"
+              }`}
+              title="Open channels"
+              aria-label="Open channels"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
             <span
-              className={`text-2xl font-bold ${
+              className={`text-xl sm:text-2xl font-bold shrink-0 ${
                 isDark ? "text-indigo-400" : "text-indigo-600"
               }`}
             >
               #
             </span>
-            <div>
+            <div className="truncate">
               <h1
-                className={`font-bold text-base capitalize leading-tight ${
+                className={`font-bold text-sm sm:text-base capitalize leading-tight truncate ${
                   isDark ? "text-zinc-100" : "text-slate-900"
                 }`}
               >
                 {activeRoom?.name || "General"}
               </h1>
               <p
-                className={`text-xs ${
+                className={`text-[11px] sm:text-xs truncate ${
                   isDark ? "text-zinc-400" : "text-slate-500"
                 }`}
               >
@@ -635,29 +680,27 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* 🟢 Online Presence Badge */}
             <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors duration-200 ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-colors duration-200 ${
                 isDark
                   ? "bg-zinc-800/70 border-zinc-700/50 text-zinc-300"
                   : "bg-white border-slate-200 text-slate-700 shadow-xs"
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-medium">
+              <span className="text-[11px] sm:text-xs font-medium">
                 {onlineUsers.length <= 1
-                  ? "Just you online"
-                  : `${onlineUsers.length} online (${onlineUsers
-                      .map((u) => (u === currentUser ? "You" : u))
-                      .join(", ")})`}
+                  ? "1 online"
+                  : `${onlineUsers.length} online`}
               </span>
             </div>
           </div>
         </header>
 
         {/* Chat Feed (Scrollable) */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
           {messages.length === 0 ? (
             <div
               className={`h-full flex flex-col items-center justify-center text-center ${
@@ -733,7 +776,7 @@ function HomePage() {
 
                   {/* Message Bubble */}
                   <div
-                    className={`max-w-md sm:max-w-lg px-4 py-2.5 rounded-2xl shadow-sm text-sm relative group ${
+                    className={`max-w-[85%] sm:max-w-md md:max-w-lg px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-sm text-sm relative group ${
                       isOwnMessage
                         ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-br-xs shadow-md"
                         : isDark
@@ -795,7 +838,7 @@ function HomePage() {
 
         {/* Bottom Message Input Bar */}
         <div
-          className={`p-4 border-t backdrop-blur-md transition-colors duration-200 ${
+          className={`p-2.5 sm:p-4 border-t backdrop-blur-md transition-colors duration-200 ${
             isDark
               ? "border-zinc-800/80 bg-zinc-900/60"
               : "border-slate-200 bg-white/80"
@@ -803,7 +846,7 @@ function HomePage() {
         >
           <form
             onSubmit={handleSendMessage}
-            className="flex items-center gap-3 max-w-4xl mx-auto"
+            className="flex items-center gap-2 sm:gap-3 max-w-4xl mx-auto"
           >
             <div className="relative flex-1">
               <input
@@ -817,7 +860,7 @@ function HomePage() {
                     handleSendMessage();
                   }
                 }}
-                className={`w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
+                className={`w-full rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:outline-none transition-all ${
                   isDark
                     ? "bg-zinc-800/80 border border-zinc-700/70 text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50"
                     : "bg-slate-100 border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50"
@@ -828,9 +871,9 @@ function HomePage() {
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 font-semibold text-sm text-white shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 font-semibold text-sm text-white shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
             >
-              <span>Send</span>
+              <span className="hidden sm:inline">Send</span>
               <svg
                 className="w-4 h-4 transform rotate-45 -mt-0.5"
                 fill="none"
