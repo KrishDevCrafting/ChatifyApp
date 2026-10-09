@@ -397,7 +397,7 @@ function HomePage() {
             <button
               onClick={toggleTheme}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className={`p-2 m-2 rounded-lg text-sm border transition-all cursor-pointer ${
+              className={`p-2 mr-2 rounded-lg text-sm border transition-all cursor-pointer ${
                 isDark
                   ? "bg-zinc-800/80 border-zinc-700/60 text-amber-300 hover:bg-zinc-700"
                   : "bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200"
