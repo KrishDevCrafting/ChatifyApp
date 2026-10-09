@@ -64,7 +64,7 @@ function HomePage() {
 
   // 🌓 Theme State (Persistent in localStorage)
   const [theme, setTheme] = useState(
-    () => localStorage.getItem("chat_theme") || "dark"
+    () => localStorage.getItem("chat_theme") || "dark",
   );
   const isDark = theme === "dark";
 
@@ -118,14 +118,11 @@ function HomePage() {
   const fetchRoomMessages = async (roomId) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(
-        `${API_URL}/api/chat/messages/${roomId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_URL}/api/chat/messages/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
       if (data.messages) {
         const formatted = data.messages.map((m) => ({
@@ -215,10 +212,7 @@ function HomePage() {
       });
 
       socket.current.on("chat message", (message) => {
-        if (
-          !message.roomId ||
-          message.roomId === activeRoomRef.current?.id
-        ) {
+        if (!message.roomId || message.roomId === activeRoomRef.current?.id) {
           setMessages((prev) => [
             ...prev,
             {
@@ -340,7 +334,7 @@ function HomePage() {
 
   // Filtered rooms based on search query
   const filteredRooms = rooms.filter((r) =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -403,7 +397,7 @@ function HomePage() {
             <button
               onClick={toggleTheme}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className={`p-2 rounded-lg text-sm border transition-all cursor-pointer ${
+              className={`p-4 rounded-lg text-sm border transition-all cursor-pointer ${
                 isDark
                   ? "bg-zinc-800/80 border-zinc-700/60 text-amber-300 hover:bg-zinc-700"
                   : "bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200"
@@ -444,8 +438,18 @@ function HomePage() {
               title="Close channels menu"
               aria-label="Close channels menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -566,8 +570,8 @@ function HomePage() {
                         ? "bg-indigo-600/20 text-indigo-200 border border-indigo-500/30 shadow-sm"
                         : "bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm font-semibold"
                       : isDark
-                      ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent"
-                      : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 border border-transparent"
+                        ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent"
+                        : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 border border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -578,8 +582,8 @@ function HomePage() {
                             ? "text-indigo-400"
                             : "text-indigo-600"
                           : isDark
-                          ? "text-zinc-500"
-                          : "text-slate-400"
+                            ? "text-zinc-500"
+                            : "text-slate-400"
                       }`}
                     >
                       #
@@ -650,8 +654,18 @@ function HomePage() {
               title="Open channels"
               aria-label="Open channels"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
 
@@ -780,15 +794,15 @@ function HomePage() {
                       isOwnMessage
                         ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-br-xs shadow-md"
                         : isDark
-                        ? "bg-zinc-800/90 border border-zinc-700/60 text-zinc-200 rounded-bl-xs"
-                        : "bg-white border border-slate-200 text-slate-800 rounded-bl-xs shadow-xs"
+                          ? "bg-zinc-800/90 border border-zinc-700/60 text-zinc-200 rounded-bl-xs"
+                          : "bg-white border border-slate-200 text-slate-800 rounded-bl-xs shadow-xs"
                     }`}
                   >
                     {!isOwnMessage && (
                       <span
                         className={`block text-[11px] font-semibold mb-0.5 capitalize ${getUserColor(
                           msg.username,
-                          isDark
+                          isDark,
                         )}`}
                       >
                         {msg.username}
@@ -804,8 +818,8 @@ function HomePage() {
                         isOwnMessage
                           ? "text-indigo-200/80"
                           : isDark
-                          ? "text-zinc-400"
-                          : "text-slate-400"
+                            ? "text-zinc-400"
+                            : "text-slate-400"
                       }`}
                     >
                       {formatTime(msg.created_at)}
