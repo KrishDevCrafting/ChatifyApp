@@ -1,4 +1,9 @@
-import { createRoom, getAllRooms } from "../models/room.js";
+import {
+  createRoom,
+  getAllRooms,
+  getRoomsId,
+  deleteRoomById,
+} from "../models/room.js";
 
 // 1. Create a new room
 const handleCreateRoom = async (req, res) => {
@@ -35,5 +40,44 @@ const handleGetRooms = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+// Delete a room where we should delete the room by room.created_by
 
-export { handleCreateRoom, handleGetRooms };
+const handleDeleteRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const room = await getRoomsId(id);
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Protect general room
+
+    if (room.name === "general" || Number(id) === 1) {
+      return res.status(400).json({
+        message: "Default room cannot be deleted",
+      });
+    }
+
+    // Autherization: Only Ownership
+
+    if (room.created_by !== req.user.id) {
+      return res.status(403).json({
+        message: "Unauthorized: Only the creator can delete this room",
+      });
+    }
+
+    // Delete room from database (Cascade deletes messages)
+    await deleteRoomById(id);
+
+    return res.status(200).json({
+      message: "Room deleted successfully!",
+      roomId: Number(id),
+    });
+  } catch (error) {
+    console.error("Error deleting room:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export { handleCreateRoom, handleGetRooms, handleDeleteRoom };

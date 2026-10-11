@@ -246,6 +246,18 @@ function HomePage() {
       socket.current.on("user stop typing", () => {
         setTypingUser("");
       });
+
+      socket.current.on("room deleted", ({ roomId }) => {
+        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+        if (activeRoomRef.current?.id === roomId) {
+          const generalRoom = { id: 1, name: "general" };
+          setActiveRoom(generalRoom);
+          fetchRoomMessages(1);
+          if (socket.current) {
+            socket.current.emit("join room", { room: "general", roomId: 1 });
+          }
+        }
+      });
     };
 
     return () => {
@@ -329,6 +341,57 @@ function HomePage() {
     } catch (err) {
       console.error("Error creating room:", err);
       setRoomError("Server error while creating room");
+    }
+  };
+
+  // 🗑️ Delete Room Handler
+  const handleDeleteRoom = async (e, roomToDelete) => {
+    e.stopPropagation();
+
+    if (!roomToDelete || roomToDelete.name === "general" || roomToDelete.id === 1) {
+      alert("Cannot delete the default #general room.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete #${roomToDelete.name}? All messages in this room will be permanently removed.`
+    );
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/chat/rooms/${roomToDelete.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to delete room");
+        return;
+      }
+
+      // 1. Remove from local rooms list
+      setRooms((prev) => prev.filter((r) => r.id !== roomToDelete.id));
+
+      // 2. Broadcast deletion via socket
+      if (socket.current) {
+        socket.current.emit("delete room", { roomId: roomToDelete.id });
+      }
+
+      // 3. If currently in this room, fallback to general
+      if (activeRoom?.id === roomToDelete.id) {
+        const generalRoom = rooms.find((r) => r.name === "general") || {
+          id: 1,
+          name: "general",
+        };
+        switchRoom(generalRoom);
+      }
+    } catch (err) {
+      console.error("Error deleting room:", err);
+      alert("Error deleting room. Please check backend connection.");
     }
   };
 
@@ -564,7 +627,7 @@ function HomePage() {
                 <button
                   key={room.id}
                   onClick={() => switchRoom(room)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                  className={`w-full group flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
                     isActive
                       ? isDark
                         ? "bg-indigo-600/20 text-indigo-200 border border-indigo-500/30 shadow-sm"
@@ -593,15 +656,32 @@ function HomePage() {
                     </span>
                   </div>
 
-                  {isActive && (
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isDark
-                          ? "bg-indigo-400 shadow-[0_0_8px_#818cf8]"
-                          : "bg-indigo-600"
-                      }`}
-                    />
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Delete Room Trash Button (Visible if creator and not #general) */}
+                    {room.name !== "general" && room.id !== 1 && (room.creator === currentUser || !room.creator) && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteRoom(e, room)}
+                        title={`Delete #${room.name}`}
+                        className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-red-400 hover:bg-red-500/15 transition-all cursor-pointer"
+                        aria-label={`Delete room ${room.name}`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {isActive && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isDark
+                            ? "bg-indigo-400 shadow-[0_0_8px_#818cf8]"
+                            : "bg-indigo-600"
+                        }`}
+                      />
+                    )}
+                  </div>
                 </button>
               );
             })

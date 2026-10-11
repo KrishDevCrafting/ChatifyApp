@@ -23,5 +23,11 @@ const getRoomsId = async (id) => {
   const [rows] = await pool.execute("SELECT * FROM rooms WHERE id = ?", [id]);
   return rows[0];
 };
+// Delete room by Id
 
-export { createRoom, getAllRooms, getRoomsId };
+const deleteRoomById = async (id) => {
+  const [result] = await pool.execute("DELETE FROM rooms WHERE id = ?", [id]);
+  return result;
+};
+
+export { createRoom, getAllRooms, getRoomsId, deleteRoomById };

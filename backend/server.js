@@ -147,6 +147,11 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("delete room", (data) => {
+    const roomId = typeof data === "object" ? data.roomId : data;
+    io.emit("room deleted", { roomId: Number(roomId) });
+  });
+
   socket.on("disconnect", () => {
     const user = onlineUsers.get(socket.id);
     onlineUsers.delete(socket.id);
