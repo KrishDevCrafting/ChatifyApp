@@ -20,11 +20,17 @@ const handleUploadImage = async (req, res) => {
           {
             folder: "chatify_uploads",
             resource_type: "image",
+            transformation: [
+              {
+                quality: "auto",
+                fetch_format: "auto",
+              },
+            ],
           },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
-          }
+          },
         );
         uploadStream.end(req.file.buffer);
       });
