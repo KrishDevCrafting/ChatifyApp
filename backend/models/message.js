@@ -1,9 +1,9 @@
 import pool from "../Config/db.js";
 
-const createMessage = async (roomId, userId, content) => {
+const createMessage = async (roomId, userId, content, messageType = "text") => {
   const [result] = await pool.execute(
-    "INSERT INTO messages (room_id, user_id, content) VALUES (?, ?, ?)",
-    [roomId, userId, content],
+    "INSERT INTO messages (room_id, user_id, content, message_type) VALUES (?, ?, ?, ?)",
+    [roomId, userId, content, messageType],
   );
   return result;
 };

@@ -113,6 +113,8 @@ io.on("connection", (socket) => {
   socket.on("chat message", async (data) => {
     try {
       const text = typeof data === "object" ? data.text : data;
+      const messageType =
+        (typeof data === "object" && data.messageType) || "text";
       const room =
         (typeof data === "object" && data.room) ||
         socket.data.room ||
@@ -121,12 +123,13 @@ io.on("connection", (socket) => {
         socket.data.roomId || (room === "general" ? 1 : Number(room)) || 1;
 
       // 1. Save to DB
-      await createMessage(roomId, socket.user.id, text);
+      await createMessage(roomId, socket.user.id, text, messageType);
 
       // 2. Broadcast to room
       io.to(room).emit("chat message", {
         username: socket.user.username,
         text,
+        messageType,
         roomId,
         created_at: new Date().toISOString(),
       });
@@ -184,6 +187,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", router);
 app.use("/api/chat", chatRouter);
 app.get("/", (req, res) => {

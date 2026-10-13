@@ -91,6 +91,9 @@ function HomePage() {
   const [roomError, setRoomError] = useState("");
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imagePreviewModal, setImagePreviewModal] = useState(null);
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
@@ -129,6 +132,7 @@ function HomePage() {
           type: "chat",
           username: m.username,
           text: m.content,
+          messageType: m.message_type || "text",
           created_at: m.created_at,
           roomId: m.room_id,
         }));
@@ -219,6 +223,7 @@ function HomePage() {
               type: "chat",
               username: message.username,
               text: message.text,
+              messageType: message.messageType || "text",
               created_at: message.created_at || new Date().toISOString(),
               roomId: message.roomId,
             },
@@ -298,9 +303,66 @@ function HomePage() {
       room: activeRoom.name,
       roomId: activeRoom.id,
       text: inputText.trim(),
+      messageType: "text",
     });
 
     setInputText("");
+  };
+
+  // 📸 Image Selection & Upload Handler
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeRoom) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (PNG, JPG, WEBP, GIF)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image size should be less than 10MB");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      setIsUploadingImage(true);
+      const res = await fetch(`${API_URL}/api/chat/upload-image`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to upload image");
+        return;
+      }
+
+      if (socket.current) {
+        socket.current.emit("chat message", {
+          room: activeRoom.name,
+          roomId: activeRoom.id,
+          text: data.url,
+          messageType: "image",
+        });
+      }
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Network error while uploading image");
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   // ➕ Create New Room Handler
@@ -889,9 +951,26 @@ function HomePage() {
                       </span>
                     )}
 
-                    <p className="leading-relaxed break-words whitespace-pre-wrap">
-                      {msg.text}
-                    </p>
+                    {msg.messageType === "image" ? (
+                      <div className="relative group/img overflow-hidden rounded-xl mt-1 max-w-[260px] sm:max-w-[340px] border border-white/10 shadow-md">
+                        <img
+                          src={msg.text}
+                          alt="Shared attachment"
+                          className="w-full h-auto max-h-72 object-cover rounded-xl cursor-pointer hover:scale-[1.02] transition-transform duration-200"
+                          onClick={() => setImagePreviewModal(msg.text)}
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <span className="text-white text-xs bg-black/70 px-2.5 py-1 rounded-md backdrop-blur-xs flex items-center gap-1 font-medium shadow-sm">
+                            🔍 Click to zoom
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="leading-relaxed break-words whitespace-pre-wrap">
+                        {msg.text}
+                      </p>
+                    )}
 
                     <div
                       className={`text-[10px] mt-1 text-right ${
@@ -942,6 +1021,63 @@ function HomePage() {
             onSubmit={handleSendMessage}
             className="flex items-center gap-2 sm:gap-3 max-w-4xl mx-auto"
           >
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
+
+            {/* Photo upload trigger button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage || !activeRoom}
+              title="Share an image"
+              className={`p-2.5 sm:p-3 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                isDark
+                  ? "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700/60"
+                  : "bg-slate-200/80 hover:bg-slate-300 text-slate-600 hover:text-slate-900 border border-slate-300/80"
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              {isUploadingImage ? (
+                <svg
+                  className="w-5 h-5 animate-spin text-indigo-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+            </button>
             <div className="relative flex-1">
               <input
                 type="text"
@@ -985,6 +1121,34 @@ function HomePage() {
           </form>
         </div>
       </main>
+
+      {/* 🖼️ Full-size Image Preview Modal */}
+      {imagePreviewModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setImagePreviewModal(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setImagePreviewModal(null)}
+              className="absolute -top-12 right-0 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-all cursor-pointer"
+              title="Close image preview"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={imagePreviewModal}
+              alt="Full preview"
+              className="max-h-[85vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

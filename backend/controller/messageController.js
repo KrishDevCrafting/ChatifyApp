@@ -2,14 +2,14 @@ import { createMessage, getMessagesRoom } from "../models/message.js";
 
 const handleSendMessage = async (req, res) => {
   try {
-    const { roomId, content } = req.body;
+    const { roomId, content, messageType = "text" } = req.body;
 
     if (!roomId || !content) {
       return res.status(400).json({
         message: "Room ID and content are required",
       });
     }
-    const result = await createMessage(roomId, req.user.id, content);
+    const result = await createMessage(roomId, req.user.id, content, messageType);
 
     return res.status(201).json({
       message: "Message sent successfully!",
