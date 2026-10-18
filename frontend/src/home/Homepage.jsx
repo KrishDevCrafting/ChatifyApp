@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { connectWs } from "../ws";
 import { API_URL } from "../config";
+import playsound from "../utils/sound.js";
 
 // 🎨 Har user ke naam ke hisaab se distinct color
 const getUserColor = (name, isDark = true) => {
@@ -216,6 +217,10 @@ function HomePage() {
       });
 
       socket.current.on("chat message", (message) => {
+        if (message.username !== currentUser) {
+          playsound();
+        }
+
         if (!message.roomId || message.roomId === activeRoomRef.current?.id) {
           setMessages((prev) => [
             ...prev,
@@ -410,13 +415,17 @@ function HomePage() {
   const handleDeleteRoom = async (e, roomToDelete) => {
     e.stopPropagation();
 
-    if (!roomToDelete || roomToDelete.name === "general" || roomToDelete.id === 1) {
+    if (
+      !roomToDelete ||
+      roomToDelete.name === "general" ||
+      roomToDelete.id === 1
+    ) {
       alert("Cannot delete the default #general room.");
       return;
     }
 
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete #${roomToDelete.name}? All messages in this room will be permanently removed.`
+      `Are you sure you want to delete #${roomToDelete.name}? All messages in this room will be permanently removed.`,
     );
     if (!confirmDelete) return;
 
@@ -720,19 +729,31 @@ function HomePage() {
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {/* Delete Room Trash Button (Visible if creator and not #general) */}
-                    {room.name !== "general" && room.id !== 1 && (room.creator === currentUser || !room.creator) && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteRoom(e, room)}
-                        title={`Delete #${room.name}`}
-                        className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-red-400 hover:bg-red-500/15 transition-all cursor-pointer"
-                        aria-label={`Delete room ${room.name}`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
+                    {room.name !== "general" &&
+                      room.id !== 1 &&
+                      (room.creator === currentUser || !room.creator) && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteRoom(e, room)}
+                          title={`Delete #${room.name}`}
+                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-red-400 hover:bg-red-500/15 transition-all cursor-pointer"
+                          aria-label={`Delete room ${room.name}`}
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      )}
 
                     {isActive && (
                       <span
@@ -1137,8 +1158,18 @@ function HomePage() {
               className="absolute -top-12 right-0 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md transition-all cursor-pointer"
               title="Close image preview"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
             <img
