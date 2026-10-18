@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { connectWs } from "../ws";
 import { API_URL } from "../config";
 import playsound from "../utils/sound.js";
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  showDesktopNotification,
+} from "../utils/notification.js";
 
 // 🎨 Har user ke naam ke hisaab se distinct color
 const getUserColor = (name, isDark = true) => {
@@ -103,6 +108,37 @@ function HomePage() {
   useEffect(() => {
     activeRoomRef.current = activeRoom;
   }, [activeRoom]);
+
+  // 🔔 Desktop Notification Permission State
+  const [notifPermission, setNotifPermission] = useState(() =>
+    getNotificationPermission(),
+  );
+
+  const handleToggleNotification = async () => {
+    if (notifPermission === "denied") {
+      alert(
+        "Notifications are blocked in your browser settings. Please allow them from the site permissions/lock icon in your browser address bar.",
+      );
+      return;
+    }
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+  };
+
+  // 🏷️ Reset tab title back to 'Chatify' when user focuses the tab
+  useEffect(() => {
+    const resetTitle = () => {
+      if (!document.hidden) {
+        document.title = "Chatify";
+      }
+    };
+    document.addEventListener("visibilitychange", resetTitle);
+    window.addEventListener("focus", resetTitle);
+    return () => {
+      document.removeEventListener("visibilitychange", resetTitle);
+      window.removeEventListener("focus", resetTitle);
+    };
+  }, []);
 
   // Auto-scroll to bottom of chat on new message
   useEffect(() => {
@@ -219,6 +255,27 @@ function HomePage() {
       socket.current.on("chat message", (message) => {
         if (message.username !== currentUser) {
           playsound();
+
+          // 🔔 Native Desktop Notification when user is away/in another tab
+          const roomName = activeRoomRef.current?.name || "chat";
+          const bodyText =
+            message.messageType === "image"
+              ? "📷 Sent an image"
+              : message.text || "Sent a message";
+
+          showDesktopNotification({
+            title: `${message.username} in #${roomName}`,
+            body: bodyText,
+            icon: "/favicon.svg",
+            onClick: () => {
+              window.focus();
+            },
+          });
+
+          // 🏷️ Tab Title Alert if tab is in the background
+          if (document.hidden) {
+            document.title = `(1) 💬 New message • Chatify`;
+          }
         }
 
         if (!message.roomId || message.roomId === activeRoomRef.current?.id) {
@@ -525,8 +582,75 @@ function HomePage() {
             </div>
           </div>
 
-          {/* Action Buttons: Theme Toggle & Logout */}
+          {/* Action Buttons: Notification Toggle, Theme Toggle & Logout */}
           <div className="flex items-center gap-1.5">
+            {/* 🔔 Notification Toggle Button */}
+            <button
+              onClick={handleToggleNotification}
+              title={
+                notifPermission === "granted"
+                  ? "Notifications Enabled"
+                  : notifPermission === "denied"
+                    ? "Notifications Blocked (Click for help)"
+                    : "Enable Desktop Notifications"
+              }
+              aria-label="Toggle notifications"
+              className={`p-2 rounded-lg text-sm border transition-all cursor-pointer relative ${
+                notifPermission === "granted"
+                  ? isDark
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                    : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                  : notifPermission === "denied"
+                    ? isDark
+                      ? "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+                      : "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+                    : isDark
+                      ? "bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-amber-300 hover:bg-zinc-700"
+                      : "bg-slate-100 border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-200"
+              }`}
+            >
+              {notifPermission === "granted" ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
+                </svg>
+              ) : notifPermission === "denied" ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9m-6-15l18 18"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+              )}
+              {notifPermission === "default" && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse ring-2 ring-zinc-900" />
+              )}
+            </button>
+
             {/* 🌓 Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -858,6 +982,73 @@ function HomePage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* 🔔 Main Header Notification Toggle Button */}
+            <button
+              onClick={handleToggleNotification}
+              title={
+                notifPermission === "granted"
+                  ? "Notifications Enabled"
+                  : notifPermission === "denied"
+                    ? "Notifications Blocked (Click for help)"
+                    : "Enable Desktop Notifications"
+              }
+              aria-label="Toggle notifications"
+              className={`p-1.5 sm:p-2 rounded-full border transition-all cursor-pointer relative ${
+                notifPermission === "granted"
+                  ? isDark
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                    : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                  : notifPermission === "denied"
+                    ? isDark
+                      ? "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+                      : "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+                    : isDark
+                      ? "bg-zinc-800/80 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                      : "bg-white border-slate-200 text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {notifPermission === "granted" ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
+                </svg>
+              ) : notifPermission === "denied" ? (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9m-6-15l18 18"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+              )}
+              {notifPermission === "default" && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse ring-2 ring-zinc-900" />
+              )}
+            </button>
+
             {/* 🟢 Online Presence Badge */}
             <div
               className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-colors duration-200 ${
