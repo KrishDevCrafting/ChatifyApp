@@ -1,9 +1,9 @@
 /**
  * Web Notifications API Utility for Chatify
- * Handles browser permissions, native OS desktop alerts, and test triggers.
+ * Handles browser permissions, native OS desktop alerts, mobile Service Worker alerts, and test triggers.
  */
 
-// Generate a clean PNG data URL for maximum OS compatibility (Linux/Windows/macOS)
+// Generate a clean PNG data URL for maximum OS compatibility (Linux/Windows/macOS/Android)
 let cachedIconUrl = null;
 const getNotificationIcon = () => {
   if (cachedIconUrl) return cachedIconUrl;
@@ -40,6 +40,25 @@ export const isNotificationSupported = () => {
   return typeof window !== "undefined" && "Notification" in window;
 };
 
+// Register Service Worker for Mobile (Android Chrome / Pixel) notification support
+export const registerServiceWorker = async () => {
+  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      return reg;
+    } catch (err) {
+      console.warn("Service Worker registration failed:", err);
+      return null;
+    }
+  }
+  return null;
+};
+
+// Auto-register service worker in browser environments
+if (typeof window !== "undefined") {
+  registerServiceWorker();
+}
+
 // Get current permission: 'default' | 'granted' | 'denied' | 'unsupported'
 export const getNotificationPermission = () => {
   if (!isNotificationSupported()) return "unsupported";
@@ -59,8 +78,8 @@ export const requestNotificationPermission = async () => {
   }
 };
 
-// Trigger a native desktop notification
-export const showDesktopNotification = ({
+// Trigger a native desktop or mobile notification
+export const showDesktopNotification = async ({
   title = "Chatify",
   body = "",
   icon = null,
@@ -85,14 +104,33 @@ export const showDesktopNotification = ({
 
   // Show if forced (e.g. testing) OR if user is away/unfocused
   if (force || isAway) {
+    const finalIcon = icon || getNotificationIcon();
+    const options = {
+      body,
+      icon: finalIcon,
+      badge: finalIcon,
+      tag,
+      renotify: true,
+      vibrate: [200, 100, 200], // 📳 Haptic vibration for Android / Pixel!
+    };
+
+    // 📱 Strategy 1 (Android / Mobile Chrome / Pixel):
+    // Chrome on Android bans `new Notification()`. It requires `ServiceWorkerRegistration.showNotification()`
+    if ("serviceWorker" in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration && typeof registration.showNotification === "function") {
+          await registration.showNotification(title, options);
+          return true;
+        }
+      } catch (swErr) {
+        console.warn("ServiceWorker showNotification failed, trying fallback:", swErr);
+      }
+    }
+
+    // 💻 Strategy 2 (Desktop / PC fallback): new Notification(...)
     try {
-      const finalIcon = icon || getNotificationIcon();
-      const notification = new Notification(title, {
-        body,
-        icon: finalIcon,
-        tag,
-        renotify: true,
-      });
+      const notification = new Notification(title, options);
 
       notification.onclick = () => {
         window.focus();
@@ -104,7 +142,7 @@ export const showDesktopNotification = ({
 
       return true;
     } catch (error) {
-      console.error("Error creating Notification:", error);
+      console.error("Error creating Notification constructor:", error);
       return false;
     }
   }

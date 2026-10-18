@@ -136,17 +136,17 @@ function HomePage() {
 
     if (notifPermission === "granted") {
       // 🧪 Send immediate test desktop alert so user can verify OS notifications
-      const shown = showDesktopNotification({
+      const shown = await showDesktopNotification({
         title: "🔔 Chatify Notification Test",
-        body: "Awesome! Desktop notifications are working properly on your system.",
+        body: "Awesome! Notifications are working properly on your device.",
         force: true,
       });
 
       triggerInAppToast({
         title: "🔔 Notification Test Sent",
         body: shown
-          ? "Check your screen corner for the native desktop alert!"
-          : "Check your OS / browser Do Not Disturb settings if popup was suppressed.",
+          ? "Notification sent to your device!"
+          : "Check your OS / browser notification settings if banner did not appear.",
       });
       return;
     }
@@ -155,7 +155,7 @@ function HomePage() {
     setNotifPermission(perm);
 
     if (perm === "granted") {
-      showDesktopNotification({
+      await showDesktopNotification({
         title: "🔔 Notifications Enabled!",
         body: "You'll now receive alerts whenever new messages arrive in Chatify.",
         force: true,
@@ -163,7 +163,7 @@ function HomePage() {
 
       triggerInAppToast({
         title: "🔔 Notifications Enabled!",
-        body: "Desktop alerts will appear when new messages arrive.",
+        body: "Alerts will appear when new messages arrive.",
       });
     }
   };
