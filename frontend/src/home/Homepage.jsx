@@ -114,6 +114,18 @@ function HomePage() {
     getNotificationPermission(),
   );
 
+  // 🍞 In-App Floating Notification Toast State
+  const [inAppToast, setInAppToast] = useState(null);
+  const toastTimeoutRef = useRef(null);
+
+  const triggerInAppToast = (toastData) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setInAppToast(toastData);
+    toastTimeoutRef.current = setTimeout(() => {
+      setInAppToast(null);
+    }, 4500);
+  };
+
   const handleToggleNotification = async () => {
     if (notifPermission === "denied") {
       alert(
@@ -121,8 +133,39 @@ function HomePage() {
       );
       return;
     }
+
+    if (notifPermission === "granted") {
+      // 🧪 Send immediate test desktop alert so user can verify OS notifications
+      const shown = showDesktopNotification({
+        title: "🔔 Chatify Notification Test",
+        body: "Awesome! Desktop notifications are working properly on your system.",
+        force: true,
+      });
+
+      triggerInAppToast({
+        title: "🔔 Notification Test Sent",
+        body: shown
+          ? "Check your screen corner for the native desktop alert!"
+          : "Check your OS / browser Do Not Disturb settings if popup was suppressed.",
+      });
+      return;
+    }
+
     const perm = await requestNotificationPermission();
     setNotifPermission(perm);
+
+    if (perm === "granted") {
+      showDesktopNotification({
+        title: "🔔 Notifications Enabled!",
+        body: "You'll now receive alerts whenever new messages arrive in Chatify.",
+        force: true,
+      });
+
+      triggerInAppToast({
+        title: "🔔 Notifications Enabled!",
+        body: "Desktop alerts will appear when new messages arrive.",
+      });
+    }
   };
 
   // 🏷️ Reset tab title back to 'Chatify' when user focuses the tab
@@ -266,11 +309,24 @@ function HomePage() {
           showDesktopNotification({
             title: `${message.username} in #${roomName}`,
             body: bodyText,
-            icon: "/favicon.svg",
             onClick: () => {
               window.focus();
             },
           });
+
+          // 🍞 Floating In-App Toast (if looking at another room or window lost focus)
+          const isCurrentRoom =
+            !message.roomId || message.roomId === activeRoomRef.current?.id;
+          if (
+            !isCurrentRoom ||
+            document.hidden ||
+            (typeof document.hasFocus === "function" && !document.hasFocus())
+          ) {
+            triggerInAppToast({
+              title: `${message.username} in #${roomName}`,
+              body: bodyText,
+            });
+          }
 
           // 🏷️ Tab Title Alert if tab is in the background
           if (document.hidden) {
@@ -589,7 +645,7 @@ function HomePage() {
               onClick={handleToggleNotification}
               title={
                 notifPermission === "granted"
-                  ? "Notifications Enabled"
+                  ? "Notifications Active (Click to test alert)"
                   : notifPermission === "denied"
                     ? "Notifications Blocked (Click for help)"
                     : "Enable Desktop Notifications"
@@ -987,7 +1043,7 @@ function HomePage() {
               onClick={handleToggleNotification}
               title={
                 notifPermission === "granted"
-                  ? "Notifications Enabled"
+                  ? "Notifications Active (Click to test alert)"
                   : notifPermission === "denied"
                     ? "Notifications Blocked (Click for help)"
                     : "Enable Desktop Notifications"
@@ -1370,6 +1426,57 @@ function HomePage() {
             />
           </div>
         </div>
+      )}
+      {/* 🍞 Floating In-App Toast Notification */}
+      {inAppToast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed top-4 right-4 z-50 max-w-sm w-[calc(100%-2rem)] sm:w-80 animate-in fade-in slide-in-from-top-3 duration-200 pointer-events-auto"
+        >
+          <div
+            className={`p-3.5 rounded-xl shadow-2xl border backdrop-blur-xl flex items-start gap-3 transition-all ${
+              isDark
+                ? "bg-zinc-900/95 border-zinc-700/80 text-zinc-100 shadow-black/60"
+                : "bg-white/95 border-slate-200 text-slate-800 shadow-indigo-500/10"
+            }`}
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shrink-0 shadow-md text-sm">
+              💬
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold truncate leading-snug">
+                {inAppToast.title}
+              </h4>
+              <p
+                className={`text-xs mt-0.5 line-clamp-2 ${
+                  isDark ? "text-zinc-400" : "text-slate-600"
+                }`}
+              >
+                {inAppToast.body}
+              </p>
+            </div>
+            <button
+              onClick={() => setInAppToast(null)}
+              className="text-zinc-400 hover:text-zinc-200 p-1 rounded-md transition-colors cursor-pointer"
+              aria-label="Dismiss notification"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </aside>
       )}
     </div>
   );
